@@ -9,8 +9,11 @@ import SimpleITK as sitk
 def get_args_parser():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dir', '-i', defualt='/path/to/lidc/folder', type=str)
+    parser.add_argument('--input_dir_imgs', '-i', default='/path/to/lidc/folder', type=str)
+    parser.add_argument('--input_dir_masks', '-m', default='/path/to/lidc/masks/folder', type=str)
     parser.add_argument('--output_dir', '-o', default='/path/to/output/folder', type=str)
+
+    return parser
 
 
 def load_dicom_volume(f, pixelID=None):
@@ -29,46 +32,45 @@ def main(args):
     # initialize the label statistics filter
     label_statistic = sitk.LabelIntensityStatisticsImageFilter()
 
-    # check if input folder exist and is a directory
-    assert os.path.exists(args.input_dir), f"Input directory `{args.input_dir}` does not exist."
-    assert os.path.isdir(args.input_dir), f"Input directory `{args.input_dir}` is not a directory."
+    # check if input folders exist and are directories
+    assert os.path.exists(args.input_dir_imgs), f"Input directory `{args.input_dir_imgs}` does not exist."
+    assert os.path.isdir(args.input_dir_imgs), f"Input directory `{args.input_dir_imgs}` is not a directory."
 
-    # check if input folder has subdirectories `images`and `masks`
-    assert 'images' in os.listdir(args.input_dir), f"Input directory is expected to contain subfolders `images` and `masks`."
-    assert 'masks' in os.listdir(args.input_dir), f"Input directory is expected to contain subfolders `images` and `masks`."
+    assert os.path.exists(args.input_dir_masks), f"Input directory `{args.input_dir_masks}` does not exist."
+    assert os.path.isdir(args.input_dir_masks), f"Input directory `{args.input_dir_masks}` is not a directory."
 
     # get all subjects
-    subjects = [im for im in os.listdir(os.path.join(args.input_dir, 'images')) if im.startswith('LIDC-IDRI-')]
+    subjects = [im for im in os.listdir(args.input_dir_imgs) if im.startswith('LIDC-IDRI-')]
     for subject in subjects:
 
         # get all studies for each subject
-        study_ids = os.listdir(os.path.join(args.input_dir, 'images', subject))
+        study_ids = os.listdir(os.path.join(args.input_dir_imgs, subject))
         for study_id in study_ids:
 
             # check if there is any segmentation for `study_id`
-            if not os.path.exists(os.path.join(args.input_dir, 'masks', subject, study_id)):
+            if not os.path.exists(os.path.join(args.input_dir_masks, subject, study_id)):
                 continue
             
             # get all series for each study and select only the first series
-            series_ids = os.listdir(os.path.join(args.input_dir, 'images', subject, study_id))
+            series_ids = os.listdir(os.path.join(args.input_dir_imgs, subject, study_id))
             series_id = series_ids[0]
 
             # load image and retrieve spacing, origin and size
-            sitk_img = load_dicom_volume(os.path.join(args.input_dir, 'images', subject, study_id, series_id), sitk.sitkUInt16)
+            sitk_img = load_dicom_volume(os.path.join(args.input_dir_imgs, subject, study_id, series_id), sitk.sitkUInt16)
             img_spacing = sitk_img.GetSpacing()
             img_origin = sitk_img.GetOrigin()
             img_size = sitk_img.GetSize()
 
             # load all nodules for the study and bundle nodule segmentations from different annotators
             nodule_dict = {}
-            nodules = [nod for nod in os.listdir(os.path.join(args.input_dir, 'masks', subject, study_id)) if 'Segmentation of Nodule' in nod]
+            nodules = [nod for nod in os.listdir(os.path.join(args.input_dir_masks, subject, study_id)) if 'Segmentation of Nodule' in nod]
             for nodule in nodules:
                 
                 # get nodule number
                 nodule_num = re.split(r"\W(?=Nodule|- Annotation)", nodule)[1].split()[1]
 
                 # load mask and retrieve origin and size
-                sitk_msk = load_dicom_volume(os.path.join(args.input_dir, 'masks', subject, study_id, nodule), sitk.sitkUInt8)
+                sitk_msk = load_dicom_volume(os.path.join(args.input_dir_masks, subject, study_id, nodule), sitk.sitkUInt8)
                 msk_origin = sitk_msk.GetOrigin()
                 msk_size = sitk_msk.GetSize()
                 if len(msk_size) == 4 and msk_size[3] == 1:
@@ -82,7 +84,7 @@ def main(args):
                 sitk_msk = sitk.Cast(sitk_msk, sitk.sitkUInt8)
 
                 # calculate padding for mask
-                upadding = [0, 0, round(max(img_origin[2], msk_origin[2]) - min(img_origin[2], msk_origin[2]) / img_spacing[2])]
+                upadding = [0, 0, round(abs(img_origin[2] - msk_origin[2]) / img_spacing[2])]
                 lpadding = [0, 0, img_size[2] - msk_size[2] - upadding[2]]
 
                 # pad mask
@@ -104,6 +106,7 @@ def main(args):
             
             # combine all nodule masks to get the final mask
             combined_mask = sitk.Image(img_size, sitk.sitkUInt8)
+            combined_mask.CopyInformation(sitk_img)
             for nodule_num in nodule_dict.keys():
                 combined_mask = sitk.Or(combined_mask, nodule_dict[nodule_num])
 
