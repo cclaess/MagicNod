@@ -123,7 +123,8 @@ def main(args):
                     slice_msk_bbox.CopyInformation(slice_msk)
                     for label in label_statistic.GetLabels():
                         bbox = label_statistic.GetBoundingBox(label)
-                        slice_msk_bbox[bbox[0]:bbox[1], bbox[2]:bbox[3]] = 1
+                        print(bbox)
+                        slice_msk_bbox[bbox[0]:bbox[0] + bbox[2], bbox[1]:bbox[1] + bbox[3]] = 1
                     
                     # mask the input image with black squares
                     slice_img_bbox = sitk.Mask(slice_img, slice_msk_bbox)
@@ -145,3 +146,6 @@ if __name__ == "__main__":
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
+
+
+    from monai.networks.nets import vit_base_patch16_224
