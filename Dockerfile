@@ -45,6 +45,6 @@ RUN pip3 install git+https://github.com/jonbarron/robust_loss_pytorch
 
 # dependencies for lidc
 RUN pip3 install pydicom pylidc
-RUN pip3 install numpy<1.24.0
+RUN pip3 install numpy\<=1.23.5
 
 WORKDIR /app/script
