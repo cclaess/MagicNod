@@ -56,7 +56,7 @@ def main(args):
             series_id = series_ids[0]
 
             # load image and retrieve spacing, origin and size
-            sitk_img = load_dicom_volume(os.path.join(args.input_dir_imgs, subject, study_id, series_id), sitk.sitkUInt16)
+            sitk_img = load_dicom_volume(os.path.join(args.input_dir_imgs, subject, study_id, series_id), sitk.sitkInt16)
             img_spacing = sitk_img.GetSpacing()
             img_origin = sitk_img.GetOrigin()
             img_size = sitk_img.GetSize()
@@ -116,17 +116,33 @@ def main(args):
                 slice_img = sitk_img[:, :, z]
                 slice_msk = combined_mask[:, :, z]
                 if sitk.GetArrayFromImage(slice_msk).sum() > 0:
+                    # save the axial slice of the image and mask
+                    out_dir_img = Path(os.path.join(args.output_dir, 'img', subject, study_id))
+                    out_dir_msk = Path(os.path.join(args.output_dir, 'msk', subject, study_id))
+
+                    out_dir_img.mkdir(parents=True, exist_ok=True)
+                    out_dir_msk.mkdir(parents=True, exist_ok=True)
+
+                    sitk.WriteImage(slice_img, os.path.join(out_dir_img, f'{z}.nii.gz'))
+                    sitk.WriteImage(slice_msk, os.path.join(out_dir_msk, f'{z}.nii.gz'))
+
                     # create a new mask with black squares covering the classes 1
                     slice_msk_labeled = sitk.ConnectedComponent(slice_msk)
-                    label_statistic.Execute(slice_msk, slice_msk_labeled)
+                    # save connected component image
+                    label_statistic.Execute(slice_msk_labeled, slice_msk)
                     slice_msk_bbox = sitk.Image(slice_msk.GetSize(), sitk.sitkUInt8)
+                    # set all values to 1
+                    slice_msk_bbox = slice_msk_bbox + 1
+
                     slice_msk_bbox.CopyInformation(slice_msk)
                     for label in label_statistic.GetLabels():
                         bbox = label_statistic.GetBoundingBox(label)
-                        print(bbox)
-                        slice_msk_bbox[bbox[0]:bbox[0] + bbox[2], bbox[1]:bbox[1] + bbox[3]] = 1
+                        slice_msk_bbox[bbox[0]:bbox[0] + bbox[2], bbox[1]:bbox[1] + bbox[3]] = 0
                     
                     # mask the input image with black squares
+                    slice_img = sitk.Clamp(slice_img, lowerBound=-1000, upperBound=1000)
+                    slice_img = sitk.RescaleIntensity(slice_img, 0, 255)
+                    slice_img = sitk.Cast(slice_img, sitk.sitkUInt8)
                     slice_img_bbox = sitk.Mask(slice_img, slice_msk_bbox)
 
                     out_dir_input = Path(os.path.join(args.output_dir, 'input', subject, study_id))
@@ -146,6 +162,3 @@ if __name__ == "__main__":
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
-
-
-    from monai.networks.nets import vit_base_patch16_224
