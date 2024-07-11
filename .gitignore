@@ -1,3 +1,2 @@
 dataset/
 wandb/
-scripts/train_instructpix2pix_slurm.sh
