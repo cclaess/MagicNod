@@ -10,4 +10,4 @@
 mkdir -p "/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod/scripts/" || exit
 
-srun apptainer exec --nv /gpfs/work4/0/tese0618/Containers/misc_v6.sif /bin/bash train_instructpix2pix.sh
+srun apptainer exec --nv /gpfs/work4/0/tese0618/Containers/magicnod_v2.sif /bin/bash train_instructpix2pix.sh
