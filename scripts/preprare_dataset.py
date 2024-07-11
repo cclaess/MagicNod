@@ -74,7 +74,7 @@ def main(args):
     assert os.path.exists(os.path.join(args.dataset_dir, "original_images")), "Original images directory does not exist"
     assert os.path.exists(os.path.join(args.dataset_dir, "edited_images")), "Edited images directory does not exist"
 
-    images = os.listdir(args.dataset_dir, "original_images")
+    images = os.listdir(os.path.join(args.dataset_dir, "original_images"))
     entries = []
     for image in images:
         entries.append({
