@@ -9,7 +9,7 @@ export WANDB_CACHE_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JO
 export WANDB_START_METHOD="thread"
 wandb login
 
-cd "/gpfs/work4/0/tese0618/Projects/MagicNod/generativezoo/models/SD"
+cd "/gpfs/work4/0/tese0618/Projects/MagicNod/generativezoo/models/SD" || exit
 
 accelerate launch --mixed_precision="fp16" InstructPix2Pix.py \
     --pretrained_model_name_or_path=$MODEL_NAME \
@@ -28,4 +28,5 @@ accelerate launch --mixed_precision="fp16" InstructPix2Pix.py \
     --original_image_colum="original_image" \
     --edited_image_column="edited_image" \
     --edit_prompt_column="edit_prompt" \
-    --dataloader_num_workers=10
+    --dataloader_num_workers=10 \
+    --train_batch_size=32 
