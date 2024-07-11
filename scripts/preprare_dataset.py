@@ -79,7 +79,7 @@ def main(args):
     for image in images:
         entries.append({
             "prompt": random.choice(PROMPTS),
-            "oriningal_image": os.path.join(args.dataset_dir, "original_images", image),
+            "original_image": os.path.join(args.dataset_dir, "original_images", image),
             "edited_image": os.path.join(args.dataset_dir, "edited_images", image),
         })
 
