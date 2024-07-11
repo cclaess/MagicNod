@@ -8,4 +8,4 @@
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
 
-srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/misc_v6.sif" python3 scripts/preprocess_lidc_gen.py --input_dir "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed" --output_dir "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI"
+srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/misc_v6.sif" python3 scripts/preprocess_lidc.py --input_dir "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed" --output_dir "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI"

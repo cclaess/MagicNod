@@ -36,15 +36,11 @@ RUN pip3 install numpy pandas scikit-image scikit-learn scipy opencv-python
 RUN pip3 install matplotlib seaborn
 RUN pip3 install nibabel SimpleITK monai wandb
 RUN pip3 install pytz python-dateutil h5py openpyxl
-RUN pip3 install transformers huggingface_hub[cli]
+RUN pip3 install transformers huggingface_hub[cli] datasets
 
 # dependencies for caetas/GenerativeZoo
-RUN pip3 install einops Flask gitdb idna loguru mdurl medmnist ml_collections monai-generative ninja oauthlib python-dotenv s3fs sympy toml tqdm waitress pydicom lpips datasets accelerate bitsandbytes
+RUN pip3 install einops Flask gitdb idna loguru mdurl medmnist ml_collections monai-generative ninja oauthlib python-dotenv s3fs sympy toml tqdm waitress pydicom lpips accelerate bitsandbytes
 RUN pip3 install git+https://github.com/huggingface/diffusers
 RUN pip3 install git+https://github.com/jonbarron/robust_loss_pytorch
-
-# dependencies for lidc
-RUN pip3 install pydicom pylidc
-RUN pip3 install numpy\<=1.23.5
 
 WORKDIR /app/script
