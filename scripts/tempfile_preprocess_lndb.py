@@ -13,7 +13,7 @@ def main(args):
     for scan in scans:
 
         subset = scan.split(os.sep)[-2]
-        lndb_id = scan.split(os.sep)[-1].split("_")[0]
+        lndb_id = scan.split(os.sep)[-1].split(".")[0]
 
         sitk_scan = sitk.ReadImage(scan, sitk.sitkInt16)
         if subset.startswith("data"):
