@@ -17,11 +17,11 @@ accelerate launch --mixed_precision="fp16" InstructPix2Pix.py \
     --output_dir=$OUTPUT_DIR \
     --resolution=512 --random_flip \
     --train_batch_size=4 --gradient_accumulation_steps=1 --gradient_checkpointing \
-    --max_train_steps=15000 \
+    --max_train_steps=25000 \
     --checkpointing_steps=5000 \
     --learning_rate=5e-05 --max_grad_norm=1 --lr_warmup_steps=0 \
     --conditioning_dropout_prob=0.05 \
-    --validation_image="./../../../dataset/original_images/LIDC-IDRI-0001_01-01-2000-NA-NA-30178_3000566.000000-NA-03192_90.png" \
+    --validation_image="./../../../../../Datasets/LNDb-Processed-GenAI/data1/Masked/LNDb-0096_153.png" \
     --validation_prompt="put a pulmonary nodule in the red squares" \
     --seed=42 \
     --report_to="wandb" \
@@ -29,4 +29,5 @@ accelerate launch --mixed_precision="fp16" InstructPix2Pix.py \
     --edited_image_column="edited_image" \
     --edit_prompt_column="edit_prompt" \
     --dataloader_num_workers=10 \
-    --train_batch_size=32 
+    --train_batch_size=32 \
+    --output_dir "instruct-pix2pix-model-2"
