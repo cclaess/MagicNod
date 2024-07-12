@@ -20,6 +20,7 @@ def main(args):
 
         ouput_filename = os.path.join(output_dir, scan.split(os.sep)[-1][:-4] + ".nii.gz")
         sitk.WriteImage(sitk_scan, os.path.join(output_dir, ouput_filename))
+        print("Saved: ", os.path.join(output_dir, ouput_filename))
 
 
 if __name__ == "__main__":
