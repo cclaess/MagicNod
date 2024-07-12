@@ -8,8 +8,8 @@ import SimpleITK as sitk
 
 def main(args):
 
-    scans = sorted(glob(os.path.join(args.input_dir, "*data*", ".mhd")) + \
-                   glob(os.path.join(args.input_dir, "masks", ".mhd")))
+    scans = sorted(glob(os.path.join(args.input_dir, "*data*", "*.mhd")) + \
+                   glob(os.path.join(args.input_dir, "masks", "*.mhd")))
     
     print(scans)
     
