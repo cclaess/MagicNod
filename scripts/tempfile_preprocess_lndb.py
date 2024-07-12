@@ -18,6 +18,9 @@ def main(args):
         sitk_scan = sitk.ReadImage(scan, sitk.sitkInt16)
         if subset.startswith("data"):
             masks_filtered = [mask for mask in masks if lndb_id in mask]
+            if len(masks_filtered) == 0:
+                print(f"No mask found for {scan}")
+                continue
             sitk_masks = [sitk.ReadImage(mask, sitk.sitkUInt8) for mask in masks_filtered]
             sitk_masks = [sitk.Not(mask == 0) for mask in sitk_masks]
 
