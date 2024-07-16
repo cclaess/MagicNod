@@ -30,7 +30,7 @@ class LIDCInpaintingDataset(Dataset):
         self.output_files = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomScan',  '*.png')))
 
     def __len__(self):
-        return len(self.image_files)
+        return len(self.input_files)
 
     def __getitem__(self, idx):
         input_img = Image.open(self.input_files[idx])
