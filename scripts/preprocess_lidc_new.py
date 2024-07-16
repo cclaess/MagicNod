@@ -39,7 +39,7 @@ def create_rgb_image_with_mask(slice_img, slice_msk):
     slice_img_rgb_masked = sitk.Mask(slice_img_rgb, sitk.Cast(sitk.Not(slice_msk), sitk.sitkUInt8))
     slice_img_rgb_masked = slice_img_rgb_masked + slice_msk_rgb
 
-    return slice_img_rgb_masked
+    return slice_img, slice_img_rgb_masked
 
 
 def main(args):
@@ -109,7 +109,7 @@ def main(args):
                 slice_img = sitk_img[:, :, z]
                 slice_msk = sitk_msk[:, :, z]
                 slice_msk_bbox.CopyInformation(slice_img)
-                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)	
+                slice_img, slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)	
 
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
@@ -139,7 +139,7 @@ def main(args):
                 slice_msk_bbox.CopyInformation(slice_img)
 
                 # get the axial slice of the image and mask it
-                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)
+                slice_img, slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)
 
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
