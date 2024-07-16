@@ -87,14 +87,15 @@ def main(args):
             nodule = current_df[current_df["NoduleID"] == i]
 
             # get the associated slices of the nodule
-            z_start = nodule["ZNoduleStart"]
-            z_end = nodule["ZNoduleSize"] + z_start
+            z_start = nodule["ZNoduleStart"].item()
+            z_end = nodule["ZNoduleSize"].item() + z_start
 
             # if slices still in remaining_slices, remove them
             remaining_slices = [z for z in remaining_slices if z not in range(z_start, z_end)]
 
             # get the bounding box of the nodule and add a margin of 5 pixels
-            bbox = (nodule["XNoduleStart"], nodule["YNoduleStart"], nodule["XNoduleSize"], nodule["YNoduleSize"])
+            bbox = (nodule["XNoduleStart"].item(), nodule["YNoduleStart"].item(), 
+                    nodule["XNoduleSize"].item(), nodule["YNoduleSize"].item())
             bbox = (bbox[0] - 5, bbox[1] - 5, bbox[2] + 10, bbox[3] + 10)
 
             # create a mask with the bounding box of the nodule
