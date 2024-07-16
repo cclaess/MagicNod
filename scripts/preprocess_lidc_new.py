@@ -101,6 +101,7 @@ def main(args):
             # create a mask with the bounding box of the nodule
             slice_msk_bbox = sitk.Image(size, sitk.sitkUInt8)
             slice_msk_bbox[bbox[0]:bbox[0] + bbox[2], bbox[1]:bbox[1] + bbox[3]] = 1
+            slice_msk_bbox.CopyInformation(sitk_img)
 
             # loop over the slices of the nodule and save the masked and unmasked images
             for z in range(z_start, z_end):
@@ -108,7 +109,7 @@ def main(args):
                 # get the axial slice of the image and mask it
                 slice_img = sitk_img[:, :, z]
                 slice_msk = sitk_msk[:, :, z]
-                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox.CopyInformation(slice_img))	
+                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)	
 
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
@@ -135,9 +136,10 @@ def main(args):
                 # create a mask with the bounding box of the nodule
                 slice_msk_bbox = sitk.Image(size, sitk.sitkUInt8)
                 slice_msk_bbox[bbox[0]:bbox[0] + bbox[2], bbox[1]:bbox[1] + bbox[3]] = 1
+                slice_msk_bbox.CopyInformation(slice_img)
 
                 # get the axial slice of the image and mask it
-                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox.CopyInformation(slice_img))
+                slice_img_rgb_masked = create_rgb_image_with_mask(slice_img, slice_msk_bbox)
 
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
