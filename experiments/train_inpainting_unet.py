@@ -60,7 +60,7 @@ def main(args):
     dataset = LIDCInpaintingDataset(args.data_dir, transform=transform)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
-    model = UNet2DModel(in_channels=3, out_channels=3)
+    model = UNet2DModel(in_channels=3, out_channels=1)
     model.to(device)
 
     criterion = nn.MSELoss()
