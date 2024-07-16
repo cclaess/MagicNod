@@ -25,6 +25,7 @@ def create_rgb_image_with_mask(slice_img, slice_msk_bbox):
     green_channel = sitk.Image(slice_msk_bbox.GetSize(), sitk.sitkUInt8)
     blue_channel = sitk.Image(slice_msk_bbox.GetSize(), sitk.sitkUInt8)
     slice_msk_rgb = sitk.Compose(red_channel, green_channel, blue_channel)
+    slice_msk_rgb.CopyInformation(slice_img)
     slice_msk_rgb = sitk.Mask(slice_msk_rgb, slice_msk_bbox)
 
     # Prepare the slice image for masking
