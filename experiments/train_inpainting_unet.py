@@ -26,8 +26,12 @@ class LIDCInpaintingDataset(Dataset):
         self.data_dir = data_dir
         self.transform = transform
 
+        print("Input dir: ", os.path.join(data_dir, '*', '*', 'RandomMasked',  '*.png'))
+
         self.input_files = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomMasked',  '*.png')))
         self.output_files = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomScan',  '*.png')))
+
+        print("Num input files: ", len(self.input_files))
 
     def __len__(self):
         return len(self.input_files)
