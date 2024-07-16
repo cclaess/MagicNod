@@ -73,7 +73,7 @@ def main(args):
 
         # load image and mask
         sitk_img = sitk.ReadImage(os.path.join(args.input_dir, current_df["ScanPath"].iloc[0]), sitk.sitkInt16)
-        sitk_msk = sitk.ReadImage(os.path.join(args.input_dir, current_df["MaskPath"].iloc[0]), sitk.sitkUInt8)
+        sitk_msk = sitk.ReadImage(os.path.join(args.input_dir, current_df["AnnotationPath"].iloc[0]), sitk.sitkUInt8)
 
         # get the size of the XY plane of the scan
         size = sitk_img.GetSize()[:2]
