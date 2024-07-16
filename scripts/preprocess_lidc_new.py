@@ -53,8 +53,8 @@ def main(args):
         current_df = grouped_df.get_group(patient_id)
 
         # get the study_id and file_name from the `ScanPath` of the first row
-        study_id = current_df["ScanPath", 0].split(os.sep)[-3]
-        file_name = current_df["ScanPath", 0].split(os.sep)[-1][:-7]
+        study_id = current_df["ScanPath"].iloc[0].split(os.sep)[-3]
+        file_name = current_df["ScanPath"].iloc[0].split(os.sep)[-1][:-7]
 
         # create the output directories
         out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleMasked"))
@@ -72,8 +72,8 @@ def main(args):
         out_dir_random_mask.mkdir(parents=True, exist_ok=True)
 
         # load image and mask
-        sitk_img = sitk.ReadImage(os.path.join(args.input_dir, current_df["ScanPath", 0]), sitk.sitkInt16)
-        sitk_msk = sitk.ReadImage(os.path.join(args.input_dir, current_df["MaskPath", 0]), sitk.sitkUInt8)
+        sitk_img = sitk.ReadImage(os.path.join(args.input_dir, current_df["ScanPath"].iloc[0]), sitk.sitkInt16)
+        sitk_msk = sitk.ReadImage(os.path.join(args.input_dir, current_df["MaskPath"].iloc[0]), sitk.sitkUInt8)
 
         # get the size of the XY plane of the scan
         size = sitk_img.GetSize()[:2]
