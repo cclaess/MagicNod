@@ -17,14 +17,15 @@ def get_args_parser():
     return parser
 
 
-def create_rgb_image_with_mask(slice_img, slice_msk):
+def create_rgb_image_with_mask(slice_img, slice_msk_bbox):
 
     # Convert slice_msk_bbox to an RGB image
-    red_channel = sitk.Image(slice_msk.GetSize(), sitk.sitkUInt8)
+    red_channel = sitk.Image(slice_msk_bbox.GetSize(), sitk.sitkUInt8)
     red_channel = (red_channel + 1) * 255
-    green_channel = sitk.Image(slice_msk.GetSize(), sitk.sitkUInt8)
-    blue_channel = sitk.Image(slice_msk.GetSize(), sitk.sitkUInt8)
+    green_channel = sitk.Image(slice_msk_bbox.GetSize(), sitk.sitkUInt8)
+    blue_channel = sitk.Image(slice_msk_bbox.GetSize(), sitk.sitkUInt8)
     slice_msk_rgb = sitk.Compose(red_channel, green_channel, blue_channel)
+    slice_msk_rgb = sitk.Mask(slice_msk_rgb, slice_msk_bbox)
 
     # Prepare the slice image for masking
     slice_img = sitk.Clamp(slice_img, lowerBound=-1000, upperBound=1000)
@@ -36,7 +37,7 @@ def create_rgb_image_with_mask(slice_img, slice_msk):
     slice_msk_rgb.CopyInformation(slice_img_rgb)
 
     # Apply the inverse of slice mask on the image and add the rgb mask
-    slice_img_rgb_masked = sitk.Mask(slice_img_rgb, sitk.Cast(sitk.Not(slice_msk), sitk.sitkUInt8))
+    slice_img_rgb_masked = sitk.Mask(slice_img_rgb, sitk.Cast(sitk.Not(slice_msk_bbox), sitk.sitkUInt8))
     slice_img_rgb_masked = slice_img_rgb_masked + slice_msk_rgb
 
     return slice_img, slice_img_rgb_masked
@@ -114,9 +115,9 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_nodule_masked, f'{file_name}-nodule={i}-slice={z}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_nodule_scan, f'{file_name}-nodule={i}-slice={z}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_nodule_mask, f'{file_name}-nodule={i}-slice={z}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_nodule_masked, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img, os.path.join(out_dir_nodule_scan, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_msk, os.path.join(out_dir_nodule_mask, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
         
         # loop over the remaining slices and save them with random masks
         for z in remaining_slices:
@@ -144,9 +145,9 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_random_masked, f'{file_name}-random={i}-slice={z}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_random_scan, f'{file_name}-random={i}-slice={z}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_random_mask, f'{file_name}-random={i}-slice={z}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_random_masked, f'{file_name}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img, os.path.join(out_dir_random_scan, f'{file_name}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_msk, os.path.join(out_dir_random_mask, f'{file_name}-random={i:03}-slice={z:03}.png'))
                 
 
 if __name__ == "__main__":
