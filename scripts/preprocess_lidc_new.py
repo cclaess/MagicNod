@@ -61,6 +61,7 @@ def main(args):
         # check if the patient has not yet been processed
         if os.path.exists(os.path.join(args.output_dir, patient_id, study_id)) and \
            len(glob(os.path.join(args.output_dir, patient_id, study_id, "*", "*.png"))) > 0:
+            print(f"Patient {patient_id} has already been processed")
             continue
 
         # create the output directories
@@ -92,6 +93,11 @@ def main(args):
         nodules = current_df["NoduleID"].unique()
         for i in nodules:
             nodule = current_df[current_df["NoduleID"] == i]
+
+            # check if the nodule is unique
+            if len(nodule) > 1:
+                print(f"Patient {patient_id} has multiple nodules with the same ID {i}, we only consider the first one")
+                nodule = nodule.iloc[0]
 
             # get the associated slices of the nodule
             z_start = nodule["ZNoduleStart"].item()
