@@ -58,6 +58,11 @@ def main(args):
         study_id = current_df["ScanPath"].iloc[0].split(os.sep)[-3]
         file_name = current_df["ScanPath"].iloc[0].split(os.sep)[-1][:-7]
 
+        # check if the patient has not yet been processed
+        if os.path.exists(os.path.join(args.output_dir, patient_id, study_id)) and \
+           len(glob(os.path.join(args.output_dir, patient_id, study_id, "*", "*.png"))) > 0:
+            continue
+
         # create the output directories
         out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleMasked"))
         out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleScan"))
