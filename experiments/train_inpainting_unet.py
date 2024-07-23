@@ -75,7 +75,8 @@ def main(args):
     dataset = LIDCInpaintingDataset(args.data_dir, transform=transform)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
-    model = UNet(spatial_dims=2, in_channels=3, out_channels=3, channels=(32, 64, 128, 256, 512))
+    model = UNet(spatial_dims=2, in_channels=3, out_channels=3, 
+                 channels=(32, 64, 128, 256, 512), strides=(2, 2, 2, 2), num_res_units=2)
     model.to(device)
 
     criterion = nn.MSELoss() if args.loss == 'mse' else SSIMLoss(spatial_dims=2)
