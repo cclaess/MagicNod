@@ -32,7 +32,7 @@ def main(args):
     pipeline = StableDiffusionInstructPix2PixPipeline.from_pretrained(args.model_path, torch_dtype=torch.float16).to("cuda")
     generator = torch.Generator("cuda").manual_seed(args.seed)
 
-    image_paths = glob(os.path.join(args.data_path, '**', '*.png'), recursive=True)
+    image_paths = glob(os.path.join(args.data_path, '**', 'Masked', '*.png'), recursive=True)
 
     for image_path in image_paths:
 
