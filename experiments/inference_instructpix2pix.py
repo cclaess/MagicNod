@@ -36,7 +36,7 @@ def main(args):
 
     for image_path in image_paths:
 
-        image = load_image(args.image)
+        image = load_image(image_path)
 
         edited_image = pipeline(
         args.prompt,
