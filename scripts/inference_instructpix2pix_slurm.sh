@@ -11,6 +11,6 @@ cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
 srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/magicnod_v2.sif" \
         python3 -u experiments/inference_instructpix2pix.py \
         --model_path "/gpfs/work4/0/tese0618/Projects/MagicNod/models/InstructPix2Pix" \
-        --promt "Put a lung nodule in the red rectangles" \
+        --prompt "Put a lung nodule in the red rectangles" \
         --data_path "/gpfs/work4/0/tese0618/Datasets/LNDb-Processed-GenAI" \
         --output_path "/gpfs/work4/0/tese0618/Projects/MagicNod/output/InstructPix2Pix/LNDb"
