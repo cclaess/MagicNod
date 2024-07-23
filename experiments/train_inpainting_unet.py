@@ -19,11 +19,11 @@ def get_args_parser():
     parser.add_argument('--out_dir', type=str, help='Output directory for the model weights')
 
     # training parameters
-    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training')
-    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--batch_size', type=int, default=24, help='Batch size for training')
+    parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
     parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'ssim'], help='Loss function to use')
-    parser.add_argument('--optimizer', type=str, default='adam', choices=['sgd', 'adam', 'adamw'], 
+    parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'], 
                         help='Optimizer to use')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay for the optimizer')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum for the optimizer')
@@ -75,7 +75,7 @@ def main(args):
     dataset = LIDCInpaintingDataset(args.data_dir, transform=transform)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
-    model = UNet(spatial_dims=2, in_channels=3, out_channels=3, 
+    model = UNet(spatial_dims=2, in_channels=3, out_channels=1, 
                  channels=(32, 64, 128, 256, 512), strides=(2, 2, 2, 2), num_res_units=2)
     model.to(device)
 
