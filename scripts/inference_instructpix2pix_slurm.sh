@@ -8,7 +8,7 @@
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
 
-srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/magicnod_v1.sif" \
+srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/magicnod_v2.sif" \
         python3 -u experiments/inference_instructpix2pix.py \
         --model_path "/gpfs/work4/0/tese0618/Projects/MagicNod/models/InstructPix2Pix" \
         --promt "Put a lung nodule in the red rectangles" \
