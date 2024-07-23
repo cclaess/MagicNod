@@ -57,7 +57,7 @@ def main(args):
 
         # get the study_id and file_name from the `ScanPath` of the first row
         patient_id = current_df["Patient"].iloc[0]
-        file_name = current_df["ScanPath"].iloc[0].split(os.sep)[-1][:-7]
+        moment = current_df["ScanPath"].iloc[0].split('/')[-3]
 
         # check if the scan has not yet been processed
         if os.path.exists(os.path.join(args.output_dir, patient_id, scan_id)) and \
@@ -66,12 +66,12 @@ def main(args):
             continue
 
         # create the output directories
-        out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleMasked"))
-        out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleScan"))
-        out_dir_nodule_mask = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleMask"))
-        out_dir_random_masked = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomMasked"))
-        out_dir_random_scan = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomScan"))
-        out_dir_random_mask = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomMask"))
+        out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleMasked"))
+        out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleScan"))
+        out_dir_nodule_mask = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleMask"))
+        out_dir_random_masked = Path(os.path.join(args.output_dir, patient_id, moment, "RandomMasked"))
+        out_dir_random_scan = Path(os.path.join(args.output_dir, patient_id, moment, "RandomScan"))
+        out_dir_random_mask = Path(os.path.join(args.output_dir, patient_id, moment, "RandomMask"))
 
         out_dir_nodule_masked.mkdir(parents=True, exist_ok=True)
         out_dir_nodule_scan.mkdir(parents=True, exist_ok=True)
@@ -128,9 +128,9 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_nodule_masked, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_nodule_scan, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_nodule_mask, f'{file_name}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_nodule_masked, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img, os.path.join(out_dir_nodule_scan, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_msk, os.path.join(out_dir_nodule_mask, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
         
         # loop over the remaining slices and save them with random masks
         for z in remaining_slices:
@@ -158,9 +158,9 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_random_masked, f'{file_name}-random={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_random_scan, f'{file_name}-random={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_random_mask, f'{file_name}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_random_masked, f'{scan_id}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img, os.path.join(out_dir_random_scan, f'{scan_id}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_msk, os.path.join(out_dir_random_mask, f'{scan_id}-random={i:03}-slice={z:03}.png'))
                 
 
 if __name__ == "__main__":
