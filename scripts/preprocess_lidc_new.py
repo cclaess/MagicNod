@@ -47,30 +47,31 @@ def create_rgb_image_with_mask(slice_img, slice_msk_bbox):
 def main(args):
 
     nodules_df = pd.read_csv(os.path.join(args.input_dir, "data.csv"))
-    patients = nodules_df["Patient"].unique()
+    scan_ids = nodules_df["ScanID"].unique()
+    #patients = nodules_df["Patient"].unique()
 
-    grouped_df = nodules_df.groupby(["Patient"])
-    for patient_id in patients:
+    grouped_df = nodules_df.groupby(["ScanID"])
+    for scan_id in scan_ids:
 
-        current_df = grouped_df.get_group(patient_id)
+        current_df = grouped_df.get_group(scan_id)
 
         # get the study_id and file_name from the `ScanPath` of the first row
-        study_id = current_df["ScanPath"].iloc[0].split(os.sep)[-3]
+        patient_id = current_df["Patient"].iloc[0]
         file_name = current_df["ScanPath"].iloc[0].split(os.sep)[-1][:-7]
 
-        # check if the patient has not yet been processed
-        if os.path.exists(os.path.join(args.output_dir, patient_id, study_id)) and \
-           len(glob(os.path.join(args.output_dir, patient_id, study_id, "*", "*.png"))) > 0:
+        # check if the scan has not yet been processed
+        if os.path.exists(os.path.join(args.output_dir, patient_id, scan_id)) and \
+           len(glob(os.path.join(args.output_dir, patient_id, scan_id, "*", "*.png"))) > 0:
             print(f"Patient {patient_id} has already been processed")
             continue
 
         # create the output directories
-        out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleMasked"))
-        out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleScan"))
-        out_dir_nodule_mask = Path(os.path.join(args.output_dir, patient_id, study_id, "NoduleMask"))
-        out_dir_random_masked = Path(os.path.join(args.output_dir, patient_id, study_id, "RandomMasked"))
-        out_dir_random_scan = Path(os.path.join(args.output_dir, patient_id, study_id, "RandomScan"))
-        out_dir_random_mask = Path(os.path.join(args.output_dir, patient_id, study_id, "RandomMask"))
+        out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleMasked"))
+        out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleScan"))
+        out_dir_nodule_mask = Path(os.path.join(args.output_dir, patient_id, scan_id, "NoduleMask"))
+        out_dir_random_masked = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomMasked"))
+        out_dir_random_scan = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomScan"))
+        out_dir_random_mask = Path(os.path.join(args.output_dir, patient_id, scan_id, "RandomMask"))
 
         out_dir_nodule_masked.mkdir(parents=True, exist_ok=True)
         out_dir_nodule_scan.mkdir(parents=True, exist_ok=True)
