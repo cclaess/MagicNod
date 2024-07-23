@@ -60,8 +60,8 @@ def main(args):
         moment = current_df["ScanPath"].iloc[0].split('/')[-3]
 
         # check if the scan has not yet been processed
-        if os.path.exists(os.path.join(args.output_dir, patient_id, scan_id)) and \
-           len(glob(os.path.join(args.output_dir, patient_id, scan_id, "*", "*.png"))) > 0:
+        if os.path.exists(os.path.join(args.output_dir, patient_id, moment)) and \
+           len(glob(os.path.join(args.output_dir, patient_id, moment, "*", "*.png"))) > 0:
             print(f"Patient {patient_id} has already been processed")
             continue
 
