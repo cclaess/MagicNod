@@ -1,6 +1,7 @@
 import os
 import random
 import argparse
+import zipfile
 from glob import glob
 from pathlib import Path
 
@@ -44,41 +45,62 @@ def create_rgb_image_with_mask(slice_img, slice_msk_bbox):
     return slice_img, slice_img_rgb_masked
 
 
+def zip_directory(dir_path, zip_file_path):
+    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(dir_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, start=dir_path)
+                zipf.write(file_path, arcname=arcname)
+
+
 def main(args):
 
     nodules_df = pd.read_csv(os.path.join(args.input_dir, "data.csv"))
     scan_ids = nodules_df["ScanID"].unique()
-    #patients = nodules_df["Patient"].unique()
-
     grouped_df = nodules_df.groupby(["ScanID"])
-    for scan_id in scan_ids:
 
+    for scan_id in scan_ids:
         current_df = grouped_df.get_group(scan_id)
 
         # get the study_id and file_name from the `ScanPath` of the first row
         patient_id = current_df["Patient"].iloc[0]
         moment = current_df["ScanPath"].iloc[0].split('/')[-3]
 
-        # check if the scan has not yet been processed
-        if os.path.exists(os.path.join(args.output_dir, patient_id, moment)) and \
-           len(glob(os.path.join(args.output_dir, patient_id, moment, "*", "*.png"))) > 0:
-            print(f"Patient {patient_id} has already been processed")
-            continue
+        # # check if the scan has not yet been processed
+        # if os.path.exists(os.path.join(args.output_dir, patient_id, moment)) and \
+        #    len(glob(os.path.join(args.output_dir, patient_id, moment, "*", "*.png"))) > 0:
+        #     print(f"Patient {patient_id} has already been processed")
+        #     continue
 
         # create the output directories
-        out_dir_nodule_masked = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleMasked"))
-        out_dir_nodule_scan = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleScan"))
-        out_dir_nodule_mask = Path(os.path.join(args.output_dir, patient_id, moment, "NoduleMask"))
-        out_dir_random_masked = Path(os.path.join(args.output_dir, patient_id, moment, "RandomMasked"))
-        out_dir_random_scan = Path(os.path.join(args.output_dir, patient_id, moment, "RandomScan"))
-        out_dir_random_mask = Path(os.path.join(args.output_dir, patient_id, moment, "RandomMask"))
+        output_base_path = Path(os.path.join(args.output_dir, patient_id, moment))
+        out_dirs = {
+            "NoduleMasked": output_base_path / "NoduleMasked",
+            "NoduleScan": output_base_path / "NoduleScan",
+            "NoduleMask": output_base_path / "NoduleMask",
+            "RandomMasked": output_base_path / "RandomMasked",
+            "RandomScan": output_base_path / "RandomScan",
+            "RandomMask": output_base_path / "RandomMask"
+        }
 
-        out_dir_nodule_masked.mkdir(parents=True, exist_ok=True)
-        out_dir_nodule_scan.mkdir(parents=True, exist_ok=True)
-        out_dir_nodule_mask.mkdir(parents=True, exist_ok=True)
-        out_dir_random_masked.mkdir(parents=True, exist_ok=True)
-        out_dir_random_scan.mkdir(parents=True, exist_ok=True)
-        out_dir_random_mask.mkdir(parents=True, exist_ok=True)
+        # Flag to skip processing if all directories are already zipped and processed
+        skip_processing = True
+        for dir_name, dir_path in out_dirs.items():
+            zip_file_path = output_base_path / f'{dir_name}.zip'
+            if dir_path.exists() and any(dir_path.iterdir()):
+                print(f"Directory {dir_path} already exists and is not empty, zipping...")
+                zip_directory(dir_path, zip_file_path)
+            elif zip_file_path.exists():
+                print(f"Zip file {zip_file_path} already exists, skipping...")
+                continue
+            else:
+                dir_path.mkdir(parents=True, exist_ok=True)
+                skip_processing = False
+
+        if skip_processing:
+            print(f"Patient {patient_id} has already been processed")
+            continue
 
         # load image and mask
         sitk_img = sitk.ReadImage(os.path.join(args.input_dir, current_df["ScanPath"].iloc[0]), sitk.sitkInt16)
@@ -128,9 +150,9 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_nodule_masked, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_nodule_scan, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_nodule_mask, f'{scan_id}-nodule={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, out_dirs["NoduleMasked"] / f'{scan_id}-nodule={i:03}-slice={z:03}.png')
+                sitk.WriteImage(slice_img,  out_dirs["NoduleScan"] / f'{scan_id}-nodule={i:03}-slice={z:03}.png')
+                sitk.WriteImage(slice_msk, out_dirs["NoduleMask"] / f'{scan_id}-nodule={i:03}-slice={z:03}.png')
         
         # loop over the remaining slices and save them with random masks
         for z in remaining_slices:
@@ -158,9 +180,14 @@ def main(args):
                 # Rescale the mask for saving
                 slice_msk = sitk.Cast(slice_msk * 255, sitk.sitkUInt8)
 
-                sitk.WriteImage(slice_img_rgb_masked, os.path.join(out_dir_random_masked, f'{scan_id}-random={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_img, os.path.join(out_dir_random_scan, f'{scan_id}-random={i:03}-slice={z:03}.png'))
-                sitk.WriteImage(slice_msk, os.path.join(out_dir_random_mask, f'{scan_id}-random={i:03}-slice={z:03}.png'))
+                sitk.WriteImage(slice_img_rgb_masked, out_dirs["RandomMasked"] / f'{scan_id}-random={i:03}-slice={z:03}.png')
+                sitk.WriteImage(slice_img, out_dirs["RandomScan"] / f'{scan_id}-random={i:03}-slice={z:03}.png')
+                sitk.WriteImage(slice_msk, out_dirs["RandomMask"] / f'{scan_id}-random={i:03}-slice={z:03}.png')
+        
+        # Create zip files for each output directory
+        for dir_name, dir_path in out_dirs.items():
+            zip_file_path = output_base_path / f'{dir_name}.zip'
+            zip_directory(dir_path, zip_file_path)
                 
 
 if __name__ == "__main__":
