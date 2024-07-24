@@ -1,5 +1,6 @@
 import os
 import random
+import shutil
 import argparse
 import zipfile
 from glob import glob
@@ -46,7 +47,7 @@ def create_rgb_image_with_mask(slice_img, slice_msk_bbox):
 
 
 def zip_directory(dir_path, zip_file_path):
-    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_STORED) as zipf:
         for root, dirs, files in os.walk(dir_path):
             for file in files:
                 file_path = os.path.join(root, file)
@@ -91,6 +92,7 @@ def main(args):
             if dir_path.exists() and any(dir_path.iterdir()):
                 print(f"Directory {dir_path} already exists and is not empty, zipping...")
                 zip_directory(dir_path, zip_file_path)
+                shutil.rmtree(dir_path)  # Remove the directory after zipping
             elif zip_file_path.exists():
                 print(f"Zip file {zip_file_path} already exists, skipping...")
                 continue
@@ -188,6 +190,7 @@ def main(args):
         for dir_name, dir_path in out_dirs.items():
             zip_file_path = output_base_path / f'{dir_name}.zip'
             zip_directory(dir_path, zip_file_path)
+            shutil.rmtree(dir_path)  # Remove the directory after zipping
                 
 
 if __name__ == "__main__":
