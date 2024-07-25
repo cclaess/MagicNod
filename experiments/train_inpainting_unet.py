@@ -65,7 +65,7 @@ class LIDCInpaintingDataset(Dataset):
                 output_files.extend([(output_zip_path, name) for name in output_names])
 
         # make split based on patient id
-        patient_ids = [f[1].split(os.sep)[-3] for f in input_files]
+        patient_ids = [f[0].split(os.sep)[-3] for f in input_files]
         unique_ids = list(set(patient_ids))
         
         # shuffle the patient ids
