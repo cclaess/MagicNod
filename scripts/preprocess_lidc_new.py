@@ -62,17 +62,11 @@ def main(args):
     grouped_df = nodules_df.groupby(["ScanID"])
 
     for scan_id in scan_ids:
-        current_df = grouped_df.get_group(scan_id)
+        current_df = grouped_df.get_group((scan_id,))
 
         # get the study_id and file_name from the `ScanPath` of the first row
         patient_id = current_df["Patient"].iloc[0]
         moment = current_df["ScanPath"].iloc[0].split('/')[-3]
-
-        # # check if the scan has not yet been processed
-        # if os.path.exists(os.path.join(args.output_dir, patient_id, moment)) and \
-        #    len(glob(os.path.join(args.output_dir, patient_id, moment, "*", "*.png"))) > 0:
-        #     print(f"Patient {patient_id} has already been processed")
-        #     continue
 
         # create the output directories
         output_base_path = Path(os.path.join(args.output_dir, patient_id, moment))

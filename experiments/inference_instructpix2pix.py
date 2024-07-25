@@ -17,7 +17,7 @@ def get_args_parser():
     parser.add_argument('--prompt', type=str, help='Prompt for the model')
     parser.add_argument('--data_path', type=str, help='Path to the images folder')
     parser.add_argument('--num_inference_steps', type=int, default=50, help='Number of inference steps')
-    parser.add_argument('--image_guidance_scale', type=float, default=5, help='Image guidance scale')
+    parser.add_argument('--image_guidance_scale', type=float, default=2.5, help='Image guidance scale')
     parser.add_argument('--guidance_scale', type=float, default=7.5, help='Guidance scale')
 
     parser.add_argument('--output_path', type=str, help='Path to the output folder')
