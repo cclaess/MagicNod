@@ -1,6 +1,8 @@
 import os
 import random
 import argparse
+import zipfile
+from io import BytesIO
 from glob import glob
 
 import wandb
@@ -49,11 +51,21 @@ class LIDCInpaintingDataset(Dataset):
         assert split in ['train', 'val'], 'Split must be either "train" or "val"'
         assert os.path.exists(data_dir), f'Data directory {data_dir} does not exist'
 
-        input_files = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomMasked',  '*.png')))
-        output_files = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomScan',  '*.png')))
+        input_zips = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomMasked.zip')))
+        output_zips = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomScan.zip')))
+
+        # extract the zip files
+        input_files = []
+        output_files = []
+        for input_zip_path, output_zip_path in zip(input_zips, output_zips):
+            with zipfile.ZipFile(input_zip_path, 'r') as input_zip, zipfile.ZipFile(output_zip_path, 'r') as output_zip:
+                input_names = [f for f in input_zip.namelist() if f.endswith('.png')]
+                output_names = [f for f in output_zip.namelist() if f.endswith('.png')]
+                input_files.extend([(input_zip_path, name) for name in input_names])
+                output_files.extend([(output_zip_path, name) for name in output_names])
 
         # make split based on patient id
-        patient_ids = [f.split(os.sep)[-4] for f in input_files]
+        patient_ids = [f[1].split(os.sep)[-3] for f in input_files]
         unique_ids = list(set(patient_ids))
         
         # shuffle the patient ids
@@ -61,10 +73,7 @@ class LIDCInpaintingDataset(Dataset):
 
         n_val = int(val_split * len(unique_ids))
 
-        if split == 'train':
-            patient_ids_split = [p for p in unique_ids if p not in unique_ids[:n_val]]
-        else:
-            patient_ids_split = [p for p in unique_ids if p in unique_ids[:n_val]]
+        patient_ids_split = unique_ids[:n_val] if split == 'val' else unique_ids[n_val:]
         
         self.input_files = [f for f, p in zip(input_files, patient_ids) if p in patient_ids_split]
         self.output_files = [f for f, p in zip(output_files, patient_ids) if p in patient_ids_split]
@@ -74,8 +83,16 @@ class LIDCInpaintingDataset(Dataset):
         return len(self.input_files)
 
     def __getitem__(self, idx):
-        input_img = Image.open(self.input_files[idx])
-        output_img = Image.open(self.output_files[idx])
+        input_zip_path, input_name = self.input_files[idx]
+        output_zip_path, output_name = self.output_files[idx]
+
+        with zipfile.ZipFile(input_zip_path, 'r') as input_zip:
+            input_data = input_zip.read(input_name)
+        with zipfile.ZipFile(output_zip_path, 'r') as output_zip:
+            output_data = output_zip.read(output_name)
+
+        input_img = Image.open(BytesIO(input_data))
+        output_img = Image.open(BytesIO(output_data))
 
         if self.transform:
             input_img = self.transform(input_img)
