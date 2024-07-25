@@ -154,6 +154,7 @@ def main(args):
 
     best_val_loss = float('inf')
     save_path = None
+    global_step = 0
 
     for epoch in range(args.epochs):
         model.train()
@@ -171,8 +172,11 @@ def main(args):
             loss.backward()
             optimizer.step()
 
-            if i % 100 == 0:
-                print(f'Epoch {epoch}, Batch {i}, Loss: {loss.item()}')
+            # increment global step
+            global_step += 1
+
+            # log the loss and learning rate
+            wandb.log({'Training Loss / Step': loss.item(), 'Learning Rate': optimizer.param_groups[0]['lr']}, step=global_step)
             
             if scheduler:
                 if args.scheduler == 'plateau':
@@ -182,7 +186,7 @@ def main(args):
         
         avg_train_loss = running_loss / len(train_dataloader)
         print(f'Epoch {epoch}, Training Loss: {avg_train_loss}')
-        wandb.log({'Training Loss': avg_train_loss})
+        wandb.log({'Training Loss / Epoch': avg_train_loss}, step=global_step)
         
         model.eval()
         val_loss = 0.0
@@ -202,7 +206,7 @@ def main(args):
 
         avg_val_loss = val_loss / len(val_dataloader)
         print(f'Epoch {epoch}, Validation Loss: {avg_val_loss / len(val_dataloader)}')
-        wandb.log({'Validation Loss': avg_val_loss, 'Example Images': val_images})
+        wandb.log({'Validation Loss': avg_val_loss, 'Example Images': val_images}, step=global_step)
 
         # save the model if the validation loss has decreased
         if epoch == 0 or val_loss < best_val_loss:
