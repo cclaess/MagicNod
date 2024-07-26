@@ -14,6 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from monai.networks.nets import UNet
 from monai.losses import SSIMLoss
+from tqdm import tqdm
 
 
 def get_args_parser():
@@ -37,6 +38,7 @@ def get_args_parser():
 
     # misc
     parser.add_argument('--val_split', type=float, default=0.2, help='Validation split')
+    parser.add_argument('--num_workers', type=int, default=10, help='Number of workers for the dataloader')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
 
     return parser
@@ -124,7 +126,12 @@ def main(args):
         transform=transform, 
         seed=args.seed
     )
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    train_dataloader = DataLoader(
+        train_dataset, 
+        batch_size=args.batch_size, 
+        shuffle=True,
+        num_workers=args.num_workers,
+    )
 
     val_dataset = LIDCInpaintingDataset(
         args.data_dir,
@@ -133,7 +140,12 @@ def main(args):
         transform=transform,
         seed=args.seed
     )
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    val_dataloader = DataLoader(
+        val_dataset, 
+        batch_size=args.batch_size, 
+        shuffle=False,
+        num_workers=args.num_workers,
+    )
 
     model = UNet(spatial_dims=2, in_channels=3, out_channels=1, 
                  channels=(32, 64, 128, 256, 512), strides=(2, 2, 2, 2), num_res_units=2)
@@ -161,7 +173,7 @@ def main(args):
         model.train()
         running_loss = 0.0
 
-        for i, (input_img, output_img) in enumerate(train_dataloader):
+        for i, (input_img, output_img) in enumerate(tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}/{args.epochs}")):
             input_img, output_img = input_img.to(device), output_img.to(device)
 
             optimizer.zero_grad()
@@ -194,7 +206,7 @@ def main(args):
         val_images = []
 
         with torch.no_grad():
-            for i, (input_img, output_img) in enumerate(val_dataloader):
+            for i, (input_img, output_img) in enumerate(tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}/{args.epochs}")):
                 input_img, output_img = input_img.to(device), output_img.to(device)
 
                 pred_img = model(input_img)
