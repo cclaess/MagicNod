@@ -5,6 +5,8 @@ export WANDB_CACHE_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JO
 export WANDB_START_METHOD="thread"
 wandb login
 
+export PYTHONPATH="${PYTHONPATH}:/gpfs/work4/0/tese0618/Projects/MagicNod"
+
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
 
 torchrun --nproc_per_node=4 train_inpainting_unet_dist.py \
