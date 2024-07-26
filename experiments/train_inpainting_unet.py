@@ -213,9 +213,10 @@ def main(args):
                 loss = criterion(pred_img, output_img)
 
                 val_loss += loss.item()
-                val_images.append(wandb.Image(input_img[0].cpu().detach().numpy(), caption="Input Image"))
-                val_images.append(wandb.Image(output_img[0].cpu().detach().numpy(), caption="Output Image"))
-                val_images.append(wandb.Image(pred_img[0].cpu().detach().numpy(), caption="Predicted Image"))
+                if i < 3:
+                    val_images.append(wandb.Image(input_img[0].cpu().detach().numpy(), caption="Input Image"))
+                    val_images.append(wandb.Image(output_img[0].cpu().detach().numpy(), caption="Output Image"))
+                    val_images.append(wandb.Image(pred_img[0].cpu().detach().numpy(), caption="Predicted Image"))
 
         avg_val_loss = val_loss / len(val_dataloader)
         print(f'Epoch {epoch}, Validation Loss: {avg_val_loss / len(val_dataloader)}')
