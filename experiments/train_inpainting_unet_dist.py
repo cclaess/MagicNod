@@ -23,7 +23,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser(description='Train an inpainting model on the LIDC dataset')
 
     parser.add_argument('--data_dir', type=str, help='Path to the preptrained LIDC data directory')
-    parser.add_argument('--out_dir', type=str, help='Output directory for the model weights')
+    parser.add_argument('--output_dir', type=str, help='Output directory for the model weights')
     parser.add_argument('--experiment', type=str, default='experiment', help='Name of the experiment')
 
     # training parameters
