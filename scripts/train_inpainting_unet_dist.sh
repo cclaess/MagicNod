@@ -11,7 +11,7 @@ cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
 
 torchrun --nproc_per_node=4 train_inpainting_unet_dist.py \
     --data_dir="/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
-    --out_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist" \
+    --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist" \
     --experiment="test_training" \
     --batch_size=320 \
     --lr=0.0001 \
