@@ -146,10 +146,11 @@ def main(args):
         'adamw': lambda: optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     }[args.optimizer]()
     
+    num_steps = len(train_dataloader) * args.epochs
     scheduler = {
-        'step': lambda: optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1),
-        'plateau': lambda: optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True),
-        'cosine': lambda: optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
+        'step': lambda: optim.lr_scheduler.StepLR(optimizer, step_size=num_steps // 5, gamma=0.1),
+        'plateau': lambda: optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True),
+        'cosine': lambda: optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=0)
     }.get(args.scheduler, lambda: None)()
 
     best_val_loss = float('inf')
