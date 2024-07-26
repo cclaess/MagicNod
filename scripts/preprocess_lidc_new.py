@@ -58,9 +58,7 @@ def zip_directory(dir_path, zip_file_path):
 def main(args):
 
     nodules_df = pd.read_csv(os.path.join(args.input_dir, "data.csv"))
-    # reverse the order to process the latest scans first
-    nodules_df = nodules_df.iloc[::-1]
-    nodules_df = nodules_df.reset_index(drop=True)
+
     scan_ids = nodules_df["ScanID"].unique()
     grouped_df = nodules_df.groupby(["ScanID"])
 
