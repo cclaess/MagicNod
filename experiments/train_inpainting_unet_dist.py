@@ -94,7 +94,7 @@ def main(args):
         batch_size=args.batch_size, 
         num_workers=args.num_workers,
         pin_memory=True,
-        drop_last=False,
+        drop_last=True,
     )
     print(f"Data loaded: {len(train_dataset)} training samples, {len(val_dataset)} validation samples")
 
@@ -224,9 +224,18 @@ def evaluate(model, criterion, dataloader, epoch, global_step, args):
             metric_logger.update(Loss=loss.item())
 
             if utils.is_main_process and i < 3:
-                wandb_images.append(wandb.Image(input_img[0].cpu().detach().numpy(), caption="Input Image"))
-                wandb_images.append(wandb.Image(output_img[0].cpu().detach().numpy(), caption="Output Image"))
-                wandb_images.append(wandb.Image(pred_img[0].cpu().detach().numpy(), caption="Predicted Image"))
+                wandb_images.append(wandb.Image(
+                    input_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
+                    caption="Input Image"
+                ))
+                wandb_images.append(wandb.Image(
+                    output_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
+                    caption="Output Image"
+                ))
+                wandb_images.append(wandb.Image(
+                    pred_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
+                    caption="Predicted Image"
+                ))
 
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
