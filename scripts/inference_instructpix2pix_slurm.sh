@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=18
+#SBATCH --cpus-per-task=9
 #SBATCH --gpus=1
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu_mig
 #SBATCH --time=6:00:00
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
