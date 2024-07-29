@@ -67,7 +67,7 @@ def main(args):
         # draw bounding boxes on the edited image
         edited_image = np.array(edited_image)
         for x, y, w, h in bboxes:
-            cv2.rectangle(edited_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(edited_image, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1)
         edited_image = Image.fromarray(edited_image)
 
         save_path = Path(image_path.replace(args.data_path, args.output_path))
