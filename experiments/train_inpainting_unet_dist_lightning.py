@@ -7,6 +7,7 @@ from glob import glob
 
 import wandb
 import torch
+import numpy as np
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
@@ -77,8 +78,8 @@ class LIDCInpaintingDataset(Dataset):
         with zipfile.ZipFile(output_zip_path, 'r') as output_zip:
             output_data = output_zip.read(output_name)
 
-        input_img = Image.open(BytesIO(input_data))
-        output_img = Image.open(BytesIO(output_data))
+        input_img = np.array(Image.open(BytesIO(input_data)))
+        output_img = np.array(Image.open(BytesIO(output_data)))
 
         if self.transform:
             input_img = self.transform(input_img)
