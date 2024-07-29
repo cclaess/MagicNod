@@ -53,7 +53,7 @@ def main(args):
         ).images[0]
 
         # retreive bounding boxes of the nodules using the mask where mask > 0
-        mask_array = np.array(mask)
+        mask_array = cv2.cvtColor(np.array(mask), cv2.COLOR_RGB2GRAY)
         print(mask_array.shape)
         _, binary_mask = cv2.threshold(mask_array, 0, 255, cv2.THRESH_BINARY)
         print(binary_mask.shape)
