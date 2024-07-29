@@ -22,4 +22,4 @@ torchrun --nproc_per_node=4 train_inpainting_unet_dist_lightning.py \
     --val_split=0.1 \
     --seed=42 \
     --gpus=4 \
-    --accelerator="ddp"
+    --accelerator="cuda"

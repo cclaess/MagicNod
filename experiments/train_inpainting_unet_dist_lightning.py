@@ -35,7 +35,7 @@ def get_args_parser():
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--num_workers', type=int, default=10, help='Number of workers for the dataloader')
     parser.add_argument('--gpus', type=int, default=1, help='Number of GPUs to use')
-    parser.add_argument('--accelerator', type=str, default='ddp', help='Distributed backend')
+    parser.add_argument('--accelerator', type=str, default='cuda', help='Divice accelerator to use')
     return parser
 
 
