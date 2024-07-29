@@ -79,7 +79,7 @@ class LIDCInpaintingDataset(Dataset):
             output_data = output_zip.read(output_name)
 
         input_img = np.array(Image.open(BytesIO(input_data)))
-        output_img = np.array(Image.open(BytesIO(output_data)))
+        output_img = np.array(Image.open(BytesIO(output_data))).unsqueeze(-1)
 
         if self.transform:
             input_img = self.transform(input_img)
