@@ -143,6 +143,7 @@ class LIDCInpaintingModel(LightningModule):
     def train_dataloader(self):
         transform = transforms.Compose([
             transforms.ToTensor(),
+            transforms.EnsureChannelFirst(channel_dim=-1),
             transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
         ])
         train_dataset = LIDCInpaintingDataset(
@@ -157,6 +158,7 @@ class LIDCInpaintingModel(LightningModule):
     def val_dataloader(self):
         transform = transforms.Compose([
             transforms.ToTensor(),
+            transforms.EnsureChannelFirst(channel_dim=-1),
             transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
         ])
         val_dataset = LIDCInpaintingDataset(
