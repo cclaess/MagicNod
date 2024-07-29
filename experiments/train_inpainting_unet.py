@@ -2,8 +2,9 @@ import os
 import random
 import argparse
 import zipfile
-from io import BytesIO
 from glob import glob
+from io import BytesIO
+from pathlib import Path
 
 import wandb
 import torch
@@ -11,9 +12,9 @@ import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 from monai.networks.nets import UNet
 from monai.losses import SSIMLoss
+from monai import transforms
 from tqdm import tqdm
 
 
@@ -116,7 +117,7 @@ def main(args):
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(0.5, 0.5)
+        transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
     ])
 
     train_dataset = LIDCInpaintingDataset(
@@ -241,7 +242,8 @@ def main(args):
             if save_path:
                 os.remove(save_path)
 
-            save_path = os.path.join(args.out_dir, args.experiment, f'model-epoch={epoch}-val_loss={val_loss}.pth')
+            save_path = Path(os.path.join(args.out_dir, args.experiment, f'model-epoch={epoch}-val_loss={val_loss}.pth'))
+            save_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), save_path)
 
 

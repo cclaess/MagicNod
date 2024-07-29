@@ -11,10 +11,9 @@ import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 from monai.networks.nets import UNet
 from monai.losses import SSIMLoss
-from tqdm import tqdm
+from monai import transforms
 
 import utils
 
@@ -60,7 +59,7 @@ def main(args):
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(0.5, 0.5)
+        transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
     ])
 
     train_dataset = LIDCInpaintingDataset(
@@ -156,20 +155,19 @@ def main(args):
             'args': args
         }
 
-        if utils.is_main_process():
-            if val_stats['Loss'] < best_val_loss:
-                best_val_loss = val_stats['Loss']
-                save_dict['best_val_loss'] = best_val_loss
+        if val_stats['Loss'] < best_val_loss:
+            best_val_loss = val_stats['Loss']
+            save_dict['best_val_loss'] = best_val_loss
 
-                utils.save_on_master(
-                    save_dict, 
-                    os.path.join(args.output_dir, 'model-best.pth')
-                )
-            
             utils.save_on_master(
                 save_dict, 
-                os.path.join(args.output_dir, 'model.pth')
+                os.path.join(args.output_dir, 'model-best.pth')
             )
+        
+        utils.save_on_master(
+            save_dict, 
+            os.path.join(args.output_dir, 'model.pth')
+        )
 
 
 def train_one_epoch(model, criterion, optimizer, scheduler, dataloader, epoch, global_step, args):

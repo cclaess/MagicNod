@@ -13,7 +13,7 @@ python3 -u train_inpainting_unet.py \
     --experiment="test_training" \
     --batch_size=320 \
     --lr=0.0001 \
-    --epochs=10 \
+    --epochs=5 \
     --loss="ssim" \
     --optimizer="adamw" \
     --scheduler="cosine" \
