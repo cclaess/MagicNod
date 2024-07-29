@@ -2,9 +2,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
-#SBATCH --gpus=4
+#SBATCH --gpus=1
 #SBATCH --partition=gpu_h100
-#SBATCH --time=48:00:00
+#SBATCH --time=96:00:00
 
 
 mkdir -p "/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
