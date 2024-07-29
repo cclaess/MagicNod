@@ -9,17 +9,24 @@ export PYTHONPATH="${PYTHONPATH}:/gpfs/work4/0/tese0618/Projects/MagicNod"
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
 
-torchrun --nproc_per_node=4 train_inpainting_unet_dist_lightning.py \
-    --data_dir="/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
-    --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist" \
-    --experiment="test_training" \
-    --batch_size=320 \
-    --lr=0.0001 \
-    --epochs=5 \
-    --loss="ssim" \
-    --optimizer="adamw" \
-    --scheduler="cosine" \
-    --val_split=0.1 \
-    --seed=42 \
-    --gpus=4 \
-    --accelerator="cuda"
+srun torchrun \
+    --nnodes=$SLURM_JOB_NUM_NODES \
+    --nproc_per_node=4 \
+    --rdzv_id=$SLURM_JOBID \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint=${MASTER_ADDR}:${MASTER_PORT} \
+    train_inpainting_unet_dist_lightning.py \
+        --data_dir="/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
+        --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist" \
+        --experiment="test_training" \
+        --batch_size=320 \
+        --lr=0.0001 \
+        --epochs=5 \
+        --loss="ssim" \
+        --optimizer="adamw" \
+        --scheduler="cosine" \
+        --val_split=0.1 \
+        --seed=42 \
+        --gpus=-1 \
+        --nodes=4 \
+        --accelerator="cuda"
