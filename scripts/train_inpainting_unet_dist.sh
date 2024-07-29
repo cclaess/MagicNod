@@ -9,7 +9,7 @@ export PYTHONPATH="${PYTHONPATH}:/gpfs/work4/0/tese0618/Projects/MagicNod"
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
 
-srun torchrun \
+torchrun \
     --nnodes=$SLURM_JOB_NUM_NODES \
     --nproc_per_node=4 \
     --rdzv_id=$SLURM_JOBID \
