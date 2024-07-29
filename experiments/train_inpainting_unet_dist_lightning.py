@@ -185,7 +185,7 @@ def main(args):
     
     trainer = Trainer(
         max_epochs=args.epochs,
-        gpus=args.gpus,
+        devices=args.gpus,
         accelerator=args.accelerator,
         logger=wandb_logger,
         callbacks=[checkpoint_callback],
