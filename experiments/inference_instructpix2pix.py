@@ -55,6 +55,7 @@ def main(args):
         # retreive bounding boxes of the nodules using the mask where mask > 0
         mask_array = np.array(mask)
         _, binary_mask = cv2.threshold(mask_array, 0, 255, cv2.THRESH_BINARY)
+        print(binary_mask.shape)
         num_labels, labels_im = cv2.connectedComponents(binary_mask)
         bboxes = []
         for i in range(1, num_labels):
