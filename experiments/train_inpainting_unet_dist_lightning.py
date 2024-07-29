@@ -5,6 +5,7 @@ import zipfile
 from io import BytesIO
 from glob import glob
 
+import wandb
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
@@ -15,8 +16,6 @@ from pytorch_lightning.loggers import WandbLogger
 from monai.networks.nets import UNet
 from monai.losses import SSIMLoss
 from monai import transforms
-
-import utils
 
 
 def get_args_parser():
@@ -126,7 +125,18 @@ class LIDCInpaintingModel(LightningModule):
         input_img, output_img = batch
         pred_img = self(input_img)
         loss = self.criterion(pred_img, output_img)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+        # Logging a few examples to W&B
+        if batch_idx < 5:
+            input_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(input_img[0])
+            output_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(output_img[0])
+            pred_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(pred_img[0])
+            self.logger.experiment.log({
+                'input': wandb.Image(input_img.transpose(1, 2, 0), caption="Input Image"),
+                'output': wandb.Image(output_img.transpose(1, 2, 0), caption="Output Image"),
+                'prediction': wandb.Image(pred_img.transpose(1, 2, 0), caption="Predicted Image")
+            })
         return loss
 
     def train_dataloader(self):
