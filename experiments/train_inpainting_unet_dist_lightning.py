@@ -133,6 +133,7 @@ class LIDCInpaintingModel(LightningModule):
             input_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(input_img[0])
             output_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(output_img[0])
             pred_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(pred_img[0])
+            print(input_img.shape, output_img.shape, pred_img.shape)
             self.logger.experiment.log({
                 'input': wandb.Image(input_img.transpose(1, 2, 0), caption="Input Image"),
                 'output': wandb.Image(output_img.transpose(1, 2, 0), caption="Output Image"),
