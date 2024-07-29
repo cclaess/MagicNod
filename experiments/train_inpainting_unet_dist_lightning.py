@@ -135,9 +135,9 @@ class LIDCInpaintingModel(LightningModule):
             pred_img = transforms.ScaleIntensityRange(0, 1, 0, 255)(pred_img[0])
 
             self.logger.experiment.log({
-                'input': wandb.Image(input_img.permute(1, 2, 0), caption="Input Image"),
-                'output': wandb.Image(output_img.permute(1, 2, 0), caption="Output Image"),
-                'prediction': wandb.Image(pred_img.permute(1, 2, 0), caption="Predicted Image")
+                'input': wandb.Image(input_img.detach().cpu().permute(1, 2, 0), caption="Input Image"),
+                'output': wandb.Image(output_img.detach().cpu().permute(1, 2, 0), caption="Output Image"),
+                'prediction': wandb.Image(pred_img.detach().cpu().permute(1, 2, 0), caption="Predicted Image")
             })
         return loss
 
