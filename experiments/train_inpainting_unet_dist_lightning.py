@@ -185,7 +185,7 @@ class LIDCInpaintingModel(LightningModule):
         transform = transforms.Compose([
             transforms.ToTensord(keys=['input', 'output', 'mask']),
             transforms.EnsureChannelFirstd(keys=['input', 'output', 'mask'], channel_dim=-1),
-            transforms.ScaleIntensityRanged(keys=['input', 'output'], amin=0, amax=255, bmin=0., bmax=1., clip=True)
+            transforms.ScaleIntensityRanged(keys=['input', 'output'], a_min=0, a_max=255, b_min=0., b_max=1., clip=True)
         ])
         train_dataset = LIDCInpaintingDataset(
             self.args.data_dir, 
@@ -200,7 +200,7 @@ class LIDCInpaintingModel(LightningModule):
         transform = transforms.Compose([
             transforms.ToTensord(keys=['input', 'output', 'mask']),
             transforms.EnsureChannelFirstd(keys=['input', 'output', 'mask'], channel_dim=-1),
-            transforms.ScaleIntensityRanged(keys=['input', 'output'], amin=0, amax=255, bmin=0., bmax=1., clip=True)
+            transforms.ScaleIntensityRanged(keys=['input', 'output'], a_min=0, a_max=255, b_min=0., b_max=1., clip=True)
         ])
         val_dataset = LIDCInpaintingDataset(
             self.args.data_dir,
