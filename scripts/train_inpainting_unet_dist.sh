@@ -9,7 +9,7 @@ export PYTHONPATH="${PYTHONPATH}:/gpfs/work4/0/tese0618/Projects/MagicNod"
 
 cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
 
-torchrun --nproc_per_node=4 train_inpainting_unet_dist_lightning.py \
+torchrun --nproc_per_node=1 train_inpainting_unet_dist_lightning.py \
     --data_dir="/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
     --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist-2" \
     --experiment="test_training_2" \
