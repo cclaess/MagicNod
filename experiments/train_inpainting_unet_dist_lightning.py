@@ -105,10 +105,12 @@ class LIDCInpaintingModel(LightningModule):
             'adamw': lambda: torch.optim.AdamW(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
         }[self.args.optimizer]()
         
+        total_steps = (len(self.train_dataloader()) // self.args.batch_size) * self.args.epochs
+        
         scheduler = {
-            'step': torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(0.1 * self.args.epochs), gamma=0.1),
+            'step': torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(0.1 * total_steps), gamma=0.1),
             'plateau': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True),
-            'cosine': torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.args.epochs, eta_min=0)
+            'cosine': torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps, eta_min=0)
         }.get(self.args.scheduler, None)
         
         if scheduler:
@@ -120,6 +122,11 @@ class LIDCInpaintingModel(LightningModule):
         pred_img = self(input_img)
         loss = self.criterion(pred_img, output_img)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        # Update schedulers every step
+        for scheduler in self.lr_schedulers():
+            scheduler.step()
+
         return loss
 
     def validation_step(self, batch, batch_idx):
