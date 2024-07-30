@@ -154,7 +154,7 @@ class LIDCInpaintingModel(LightningModule):
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
-        input_img, output_img, mask_img = batch
+        input_img, output_img, mask_img = batch['input'], batch['output'], batch['mask']
         pred_img = self(input_img)
         loss = self.criterion(pred_img, output_img, mask_img) if self.args.loss == 'wmse' else \
             self.criterion(pred_img, output_img)
@@ -162,7 +162,7 @@ class LIDCInpaintingModel(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        input_img, output_img, mask_img = batch
+        input_img, output_img, mask_img = batch['input'], batch['output'], batch['mask']
         pred_img = self(input_img)
         loss = self.criterion(pred_img, output_img, mask_img) if self.args.loss == 'wmse' else \
             self.criterion(pred_img, output_img)
