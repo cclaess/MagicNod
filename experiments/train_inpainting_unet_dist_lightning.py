@@ -27,7 +27,7 @@ def get_args_parser():
     parser.add_argument('--batch_size', type=int, default=24, help='Batch size for training')
     parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
     parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
-    parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'ssim'], help='Loss function to use')
+    parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'wmse', 'ssim'], help='Loss function to use')
     parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'], help='Optimizer to use')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay for the optimizer')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum for the optimizer')
@@ -81,11 +81,48 @@ class LIDCInpaintingDataset(Dataset):
         input_img = np.array(Image.open(BytesIO(input_data)))
         output_img = np.array(Image.open(BytesIO(output_data)))[..., np.newaxis]
 
-        if self.transform:
-            input_img = self.transform(input_img)
-            output_img = self.transform(output_img)
+        mask = (input_img[..., 0] == 255) & (input_img[..., 1] == 0) & (input_img[..., 2] == 0)
+        mask = mask.astype(np.uint8) * 255 - 25
+        mask = mask[..., np.newaxis]
+        mask += 25
 
-        return input_img, output_img
+        data = {'input': input_img, 'output': output_img, 'mask': mask}
+
+        if self.transform:
+            data = self.transform(data)
+
+        return data
+    
+
+class WeightedMSELoss(nn.modules.loss._Loss):
+    def __init__(self, size_average=None, reduce=None, reduction: str = 'mean') -> None:
+        super(WeightedMSELoss, self).__init__(size_average, reduce, reduction)
+    
+    def forward(self, input: torch.Tensor, target: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        if input.size() != target.size():
+            raise ValueError(f"Target size ({target.size()}) must be the same as input size ({input.size()})")
+        if input.size() != mask.size():
+            raise ValueError(f"Mask size ({mask.size()}) must be the same as input size ({input.size()})")
+
+        # Compute the squared differences
+        loss = (input - target) ** 2
+
+        # Apply the mask
+        loss = loss * mask
+
+        # Reduction
+        if self.reduction == 'none':
+            return loss
+        elif self.reduction == 'sum':
+            return torch.sum(loss)
+        elif self.reduction == 'mean':
+            # Calculate the mean weighted squared error
+            sum_weighted_loss = torch.sum(loss)
+            # Count of the non-zero elements in the mask
+            num_elements = torch.sum(mask != 0).float()
+            return sum_weighted_loss / num_elements if num_elements > 0 else 0
+        else:
+            raise ValueError(f"Invalid reduction mode: {self.reduction}")
 
 
 class LIDCInpaintingModel(LightningModule):
@@ -93,7 +130,8 @@ class LIDCInpaintingModel(LightningModule):
         super().__init__()
         self.args = args
         self.model = UNet(spatial_dims=2, in_channels=3, out_channels=1, channels=(32, 64, 128, 256, 512), strides=(2, 2, 2, 2), num_res_units=2)
-        self.criterion = nn.MSELoss() if args.loss == 'mse' else SSIMLoss(spatial_dims=2)
+        self.criterion = nn.MSELoss() if args.loss == 'mse' else WeightedMSELoss() if args.loss == 'wmse' \
+                          else SSIMLoss(spatial_dims=2)
 
     def forward(self, x):
         return self.model(x)
@@ -116,16 +154,18 @@ class LIDCInpaintingModel(LightningModule):
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
-        input_img, output_img = batch
+        input_img, output_img, mask_img = batch
         pred_img = self(input_img)
-        loss = self.criterion(pred_img, output_img)
+        loss = self.criterion(pred_img, output_img, mask_img) if self.args.loss == 'wmse' else \
+            self.criterion(pred_img, output_img)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        input_img, output_img = batch
+        input_img, output_img, mask_img = batch
         pred_img = self(input_img)
-        loss = self.criterion(pred_img, output_img)
+        loss = self.criterion(pred_img, output_img, mask_img) if self.args.loss == 'wmse' else \
+            self.criterion(pred_img, output_img)
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         # Logging a few examples to W&B
@@ -143,9 +183,9 @@ class LIDCInpaintingModel(LightningModule):
 
     def train_dataloader(self):
         transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.EnsureChannelFirst(channel_dim=-1),
-            transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
+            transforms.ToTensord(keys=['input', 'output', 'mask']),
+            transforms.EnsureChannelFirstd(keys=['input', 'output', 'mask'], channel_dim=-1),
+            transforms.ScaleIntensityRanged(keys=['input', 'output'], amin=0, amax=255, bmin=0., bmax=1., clip=True)
         ])
         train_dataset = LIDCInpaintingDataset(
             self.args.data_dir, 
@@ -158,9 +198,9 @@ class LIDCInpaintingModel(LightningModule):
 
     def val_dataloader(self):
         transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.EnsureChannelFirst(channel_dim=-1),
-            transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
+            transforms.ToTensord(keys=['input', 'output', 'mask']),
+            transforms.EnsureChannelFirstd(keys=['input', 'output', 'mask'], channel_dim=-1),
+            transforms.ScaleIntensityRanged(keys=['input', 'output'], amin=0, amax=255, bmin=0., bmax=1., clip=True)
         ])
         val_dataset = LIDCInpaintingDataset(
             self.args.data_dir,
