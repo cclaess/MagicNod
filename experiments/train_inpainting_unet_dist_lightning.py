@@ -124,9 +124,8 @@ class LIDCInpaintingModel(LightningModule):
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         # Update schedulers every step
-        for scheduler in self.lr_schedulers():
-            scheduler.step()
-
+        self.lr_schedulers().step()
+        
         return loss
 
     def validation_step(self, batch, batch_idx):
