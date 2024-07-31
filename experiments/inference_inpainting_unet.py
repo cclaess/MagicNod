@@ -77,6 +77,9 @@ def main(args):
         mask.astype(np.uint8)
         # reverse mask
         mask = 1 - mask
+
+        print("out min: ", out.min(), "out max: ", out.max())
+        print("img min: ", img.min(), "img max: ", img.max())
         out[:, mask] = img[:, mask]
 
         out = Image.fromarray(out.astype(np.uint8))
