@@ -73,4 +73,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = get_args_parser()
+    args = parser.parse_args()
+
+    main(args)
