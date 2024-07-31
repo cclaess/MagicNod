@@ -73,9 +73,11 @@ def main(args):
 
         # convert out from 1 to 3 channel image
         out = np.repeat(out, 3, axis=-1)
-
-        print(img.shape, out.shape)
-        out[img[0, :, :] != 1] = img[img[0, :, :] != 1]
+        mask = (img[..., 0] == 1) & (img[..., 1] == 0) & (img[..., 2] == 0)
+        mask.astype(np.uint8)
+        # reverse mask
+        mask = 1 - mask
+        out[:, mask] = img[:, mask]
 
         # save the output image in same directror structure as input
         output_path = os.path.join(args.output, os.path.relpath(zip_file, args.input).replace('.zip', ''), image_file)
