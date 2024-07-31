@@ -11,5 +11,5 @@ cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
 srun apptainer exec --nv "/gpfs/work4/0/tese0618/Containers/magicnod_v2.sif" \
         python3 -u experiments/inference_inpainting_unet.py \
         --model "/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet-dist-4/model-epoch=04-val_loss=1.19.ckpt" \
-        --input "/gpfs/work4/0/tese0618/Datasets/LNDb-Processed-GenAI" \
-        --output "/gpfs/work4/0/tese0618/Datasets/LNDb-Processed-GenAI"
+        --input "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
+        --output "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI"
