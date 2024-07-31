@@ -79,10 +79,13 @@ def main(args):
         mask = 1 - mask
         out[:, mask] = img[:, mask]
 
+        out = Image.fromarray(out.astype(np.uint8))
+
         # save the output image in same directror structure as input
         output_path = os.path.join(args.output, os.path.relpath(zip_file, args.input).replace('.zip', ''), image_file)
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        save_image(out, output_path)
+        out.save(output_path)
+        
 
 
 if __name__ == "__main__":
