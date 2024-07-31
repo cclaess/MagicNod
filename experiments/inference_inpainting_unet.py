@@ -70,6 +70,8 @@ def main(args):
         # overwrite the original image with the inpainted image only for the region where the input is red
         img = img.squeeze(0).cpu().numpy().transpose(1, 2, 0)
         out = out.numpy().transpose(1, 2, 0)
+
+        print(img.shape, out.shape)
         out[img[0, :, :] != 1] = img[img[0, :, :] != 1]
 
         # save the output image in same directror structure as input
