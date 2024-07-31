@@ -41,12 +41,14 @@ def main(args):
     
     # process all images in the input directory and save in similar folder structure in output directory
     zip_files = glob(os.path.join(args.input, '**', 'NoduleMasked.zip'), recursive=True)
+    print("number of zip files: ", len(zip_files))
     image_files = []
     for zip_file in zip_files:
         with zipfile.ZipFile(zip_file, 'r') as zip:
                 names = [f for f in zip.namelist() if f.endswith('.png')]
                 image_files.extend([(zip_file, name) for name in names])
 
+    print("number of image files: ", len(image_files))
     for zip_file, image_file in image_files:
         with zipfile.ZipFile(zip_file, 'r') as zip:
             data = zip.read(image_file)
