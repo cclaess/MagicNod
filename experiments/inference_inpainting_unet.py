@@ -68,7 +68,7 @@ def main(args):
             out = model(img).detach().cpu().squeeze(0) * 255.0
         
         # overwrite the original image with the inpainted image only for the region where the input is red
-        img = img.squeeze(0).cpu().numpy().transpose(1, 2, 0)
+        img = img.squeeze(0).cpu().numpy().transpose(1, 2, 0) * 255.0
         out = out.numpy().transpose(1, 2, 0)
 
         # convert out from 1 to 3 channel image
