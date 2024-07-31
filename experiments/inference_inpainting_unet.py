@@ -43,7 +43,7 @@ def main(args):
         model.cuda()
     
     # process all images in the input directory and save in similar folder structure in output directory
-    zip_files = glob(os.path.join(args.input, '**', 'NoduleMasked.zip'), recursive=True)
+    zip_files = sorted(glob(os.path.join(args.input, '**', 'NoduleMasked.zip'), recursive=True))
     print("number of zip files: ", len(zip_files))
     image_files = []
     for zip_file in zip_files:
