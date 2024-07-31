@@ -5,8 +5,11 @@ from glob import glob
 from io import BytesIO
 
 import torch
+import numpy as np
+from PIL import Image
 from torchvision.io import read_image
 from torchvision.utils import save_image
+from torchvision.transforms import ToTensor
 from monai.networks.nets import UNet
 
 
@@ -54,7 +57,8 @@ def main(args):
             data = zip.read(image_file)
         
         # read the image and convert to tensor
-        img = read_image(BytesIO(data)).unsqueeze(0).float() / 255.0
+        img = Image.open(BytesIO(data))
+        img = ToTensor()(img).unsqueeze(0).float() / 255.0
 
         if torch.cuda.is_available():
             img = img.cuda()
