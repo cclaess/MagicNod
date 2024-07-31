@@ -71,8 +71,8 @@ def main(args):
         img = img.squeeze(0).cpu().numpy().transpose(1, 2, 0)
         out = out.numpy().transpose(1, 2, 0)
 
-        # convert out to 3 channel image
-        out = np.stack([out] * 3, axis=-1)
+        # convert out from 1 to 3 channel image
+        out = np.repeat(out, 3, axis=-1)
 
         print(img.shape, out.shape)
         out[img[0, :, :] != 1] = img[img[0, :, :] != 1]
