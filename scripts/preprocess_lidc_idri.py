@@ -26,6 +26,7 @@ def main(args):
 
     # Get the list of directories containing the image series
     series_dirs = glob(os.path.join(args.data_dir, "LIDC-IDRI", "LIDC-IDRI-*", "*", "*"))
+    print(f"Found {len(series_dirs)} series directories")
 
     # Create the output directory
     output_dir = Path(args.output_dir)
@@ -36,6 +37,7 @@ def main(args):
         
         # Check if the series dir contains an image series
         if not os.path.exists(os.path.join(series_dir, "scan.nii.gz")):
+            print(f"Skipping {series_dir} as it does not contain an image series")
             continue
 
         # Load the segmentation files
