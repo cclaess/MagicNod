@@ -1,4 +1,5 @@
 import os
+import random
 import argparse
 from glob import glob
 from pathlib import Path
@@ -24,8 +25,20 @@ def get_args_parser():
 
 def main(args):
 
+    # Get a list of all subjects in the LIDC-IDRI dataset
+    subjects = sorted([subject for subject in os.listdir(os.path.join(
+        args.data_dir, "LIDC-IDRI")) if subject.startswith("LIDC-IDRI-")])
+    random.seed(42)
+    random.shuffle(subjects)
+    
+    # Divide the subjects into training and validation sets
+    num_subjects = len(subjects)
+    num_train = int(0.9 * num_subjects)
+    train_subjects = subjects[:num_train]
+    val_subjects = subjects[num_train:]
+
     # Get the list of directories containing the image series
-    series_dirs = glob(os.path.join(args.data_dir, "LIDC-IDRI", "LIDC-IDRI-*", "*", "*"))
+    series_dirs = glob(os.path.join(args.data_dir, "LIDC-IDRI-*", "*", "*"))
 
     # Create the output directory
     output_dir = Path(args.output_dir)
@@ -67,8 +80,12 @@ def main(args):
         if series_mask is None:
             continue
 
+        # Get the subject ID from the series directory
+        subject_id = series_dir.split("LIDC-IDRI-")[1].split("/")[0]
+        split = "train" if subject_id in train_subjects else "valid"
+
         # Create the output directory for the series
-        series_output_dir = output_dir / Path(series_dir).relative_to(Path(args.data_dir))
+        series_output_dir = output_dir / split / Path(series_dir).relative_to(Path(args.data_dir))
         series_output_dir.mkdir(parents=True, exist_ok=True)
 
         # Load the image series
