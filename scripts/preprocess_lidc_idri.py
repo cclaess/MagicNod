@@ -69,6 +69,8 @@ def main(args):
                 series_mask = nodule_mask
             else:
                 series_mask = sitk.Or(series_mask, nodule_mask)
+        
+        print(series_mask)
 
         # Load the image series
         series_image = sitk.ReadImage(os.path.join(series_dir, "scan.nii.gz"))
