@@ -26,7 +26,6 @@ def main(args):
 
     # Get the list of directories containing the image series
     series_dirs = glob(os.path.join(args.data_dir, "LIDC-IDRI", "LIDC-IDRI-*", "*", "*"))
-    print(f"Found {len(series_dirs)} series directories")
 
     # Create the output directory
     output_dir = Path(args.output_dir)
@@ -37,7 +36,6 @@ def main(args):
         
         # Check if the series dir contains an image series
         if not os.path.exists(os.path.join(series_dir, "scan.nii.gz")):
-            print(f"Skipping {series_dir} as it does not contain an image series")
             continue
 
         # Load the segmentation files
@@ -53,10 +51,6 @@ def main(args):
                 nodule_masks[nodule_id] = []
             nodule_masks[nodule_id].append(mask_file)
         
-        # Create the output directory for the series
-        series_output_dir = output_dir / Path(series_dir).relative_to(Path(args.data_dir))
-        series_output_dir.mkdir(parents=True, exist_ok=True)
-
         # Combine the masks for all nodules
         series_mask = None
         for nodule_masks_list in nodule_masks.values():
@@ -70,7 +64,12 @@ def main(args):
             else:
                 series_mask = sitk.Or(series_mask, nodule_mask)
         
-        print(series_mask)
+        if series_mask is None:
+            continue
+
+        # Create the output directory for the series
+        series_output_dir = output_dir / Path(series_dir).relative_to(Path(args.data_dir))
+        series_output_dir.mkdir(parents=True, exist_ok=True)
 
         # Load the image series
         series_image = sitk.ReadImage(os.path.join(series_dir, "scan.nii.gz"))
