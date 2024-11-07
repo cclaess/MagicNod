@@ -35,7 +35,7 @@ def main(args):
     num_subjects = len(subjects)
     num_train = int(0.9 * num_subjects)
     train_subjects = subjects[:num_train]
-    val_subjects = subjects[num_train:]
+    print(train_subjects)
 
     # Get the list of directories containing the image series
     series_dirs = glob(os.path.join(args.data_dir, "LIDC-IDRI-*", "*", "*"))
@@ -82,6 +82,7 @@ def main(args):
 
         # Get the subject ID from the series directory
         subject_id = series_dir.split("LIDC-IDRI-")[1].split("/")[0]
+        print(subject_id)
         split = "train" if subject_id in train_subjects else "valid"
 
         # Create the output directory for the series
