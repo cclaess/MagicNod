@@ -26,8 +26,8 @@ def get_args_parser():
 def main(args):
 
     # Get a list of all subjects in the LIDC-IDRI dataset
-    subjects = sorted([subject for subject in os.listdir(os.path.join(
-        args.data_dir, "LIDC-IDRI")) if subject.startswith("LIDC-IDRI-")])
+    subjects = sorted([subject for subject in os.listdir(
+        args.data_dir) if subject.startswith("LIDC-IDRI-")])
     random.seed(42)
     random.shuffle(subjects)
     
