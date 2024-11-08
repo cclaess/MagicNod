@@ -1,21 +1,15 @@
-export WANDB_API_KEY="9c9ca3cd0f56b3e1ec268da8b0b8d545fbe85946"
-export WANDB_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_CONFIG_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_CACHE_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_START_METHOD="thread"
+cd ~/Projects/MagicNod | exit 1
+
+mkdir -p $WANDB_DIR
 wandb login
 
-cd "/gpfs/work4/0/tese0618/Projects/MagicNod/experiments" || exit
-
-python3 -u train_inpainting_unet.py \
-    --data_dir="/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI-Processed-GenAI" \
-    --out_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/models/InpaintingUNet" \
-    --experiment="test_training" \
-    --batch_size=320 \
-    --lr=0.0001 \
-    --epochs=5 \
-    --loss="ssim" \
-    --optimizer="adamw" \
-    --scheduler="cosine" \
-    --val_split=0.2 \
-    --seed=42
+accelerate launch --multi-gpu --mixed_precision "fp16" \
+    experiments/train_inpainting_unet.py \
+    --experiment-name "test_run_lidc" \
+    --data-dir "./data/LIDC-IDRI" \
+    --batch-size 32 \
+    --epochs 100 \
+    --lr 0.0001 \
+    --num-workers 10 \
+    --wandb \
+    --seed 42 \

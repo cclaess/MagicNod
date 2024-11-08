@@ -1,255 +1,221 @@
 import os
-import random
 import argparse
-import zipfile
 from glob import glob
-from io import BytesIO
 from pathlib import Path
 
-import wandb
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+import monai.data as data
+import monai.transforms as transforms
 from monai.networks.nets import UNet
-from monai.losses import SSIMLoss
-from monai import transforms
-from tqdm import tqdm
+from monai.utils import set_determinism
+from accelerate import Accelerator
+from accelerate.utils import set_seed
+
+from magicnod.transforms import FilterSlicesByMaskFuncd
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser(description='Train an inpainting model on the LIDC dataset')
+    """
+    Get the argument parser for the script.
 
-    parser.add_argument('--data_dir', type=str, help='Path to the preptrained LIDC data directory')
-    parser.add_argument('--out_dir', type=str, help='Output directory for the model weights')
-    parser.add_argument('--experiment', type=str, default='experiment', help='Name of the experiment')
+    Returns:
+    - argparse.ArgumentParser: Argument parser for the script.
+    """
+    parser = argparse.ArgumentParser(description="Train UNet model for inpainting of axial CT slices")
+    
+    # Experiment and data configuration
+    parser.add_argument("--experiment-name", required=True, type=str, help="Name of the experiment")
+    parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
 
-    # training parameters
-    parser.add_argument('--batch_size', type=int, default=24, help='Batch size for training')
-    parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
-    parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
-    parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'ssim'], help='Loss function to use')
-    parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'], 
-                        help='Optimizer to use')
-    parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay for the optimizer')
-    parser.add_argument('--momentum', type=float, default=0.9, help='Momentum for the optimizer')
-    parser.add_argument('--scheduler', type=str, default='cosine', choices=['none', 'step', 'plateau', 'cosine'], 
-                        help='Learning rate scheduler')
+    # Model and training configuration
+    parser.add_argument("--channels", type=int, nargs="+", default=[32, 64, 128, 256, 512], 
+                        help="Number of channels in each layer")
+    parser.add_argument("--strides", type=int, nargs="+", default=[2, 2, 2, 2], help="Strides in each layer")
+    parser.add_argument("--num-res-units", type=int, default=2, help="Number of residual units in the model")
+    parser.add_argument("--batch-size", type=int, default=32, help="Batch size for training")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train the model")
+    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for training")
+    parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loading")
 
-    # misc
-    parser.add_argument('--val_split', type=float, default=0.2, help='Validation split')
-    parser.add_argument('--num_workers', type=int, default=10, help='Number of workers for the dataloader')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-
+    # Misc
+    parser.add_argument("--wandb", action="store_true", help="Use wandb for logging")
+    parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
+    
     return parser
 
 
-class LIDCInpaintingDataset(Dataset):
-    def __init__(self, data_dir, split="train", val_split=0.2, transform=None, seed=42):
-        self.data_dir = data_dir
-        self.split = split
-        self.transform = transform
-
-        assert split in ['train', 'val'], 'Split must be either "train" or "val"'
-        assert os.path.exists(data_dir), f'Data directory {data_dir} does not exist'
-
-        input_zips = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomMasked.zip')))
-        output_zips = sorted(glob(os.path.join(data_dir, '*', '*', 'RandomScan.zip')))
-
-        # extract the zip files
-        input_files = []
-        output_files = []
-        for input_zip_path, output_zip_path in zip(input_zips, output_zips):
-            with zipfile.ZipFile(input_zip_path, 'r') as input_zip, zipfile.ZipFile(output_zip_path, 'r') as output_zip:
-                input_names = [f for f in input_zip.namelist() if f.endswith('.png')]
-                output_names = [f for f in output_zip.namelist() if f.endswith('.png')]
-                input_files.extend([(input_zip_path, name) for name in input_names])
-                output_files.extend([(output_zip_path, name) for name in output_names])
-
-        # make split based on patient id
-        patient_ids = [f[0].split(os.sep)[-3] for f in input_files]
-        unique_ids = list(set(patient_ids))
-        
-        # shuffle the patient ids
-        random.Random(seed).shuffle(unique_ids)
-
-        n_val = int(val_split * len(unique_ids))
-
-        patient_ids_split = unique_ids[:n_val] if split == 'val' else unique_ids[n_val:]
-        
-        self.input_files = [f for f, p in zip(input_files, patient_ids) if p in patient_ids_split]
-        self.output_files = [f for f, p in zip(output_files, patient_ids) if p in patient_ids_split]
-
-
-    def __len__(self):
-        return len(self.input_files)
-
-    def __getitem__(self, idx):
-        input_zip_path, input_name = self.input_files[idx]
-        output_zip_path, output_name = self.output_files[idx]
-
-        with zipfile.ZipFile(input_zip_path, 'r') as input_zip:
-            input_data = input_zip.read(input_name)
-        with zipfile.ZipFile(output_zip_path, 'r') as output_zip:
-            output_data = output_zip.read(output_name)
-
-        input_img = Image.open(BytesIO(input_data))
-        output_img = Image.open(BytesIO(output_data))
-
-        if self.transform:
-            input_img = self.transform(input_img)
-            output_img = self.transform(output_img)
-
-        return input_img, output_img
-
-
 def main(args):
-    # initialize wandb
-    wandb.init(project='lidc-inpainting', name=args.experiment, config=args)
 
-    # set random seeds and determinism for reproducibility
-    torch.manual_seed(args.seed)
-    random.seed(args.seed)
-    torch.backends.cudnn.deterministic = True
+    # Initialize accelerator for distributed training
+    accelerator = Accelerator(log_with="wandb" if args.wandb else None)
+    if args.wandb:
+        accelerator.init_trackers(
+            project_name="inpainting-unet",
+            config=vars(args),
+            init_kwargs={"name": args.experiment_name}
+        )
+    
+    # Set seed for reproducibility
+    set_seed(args.seed)
+    set_determinism(args.seed)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.ScaleIntensityRange(0, 255, 0., 1., clip=True)
+    # Create the checkpoint directory
+    checkpoint_dir = Path("checkpoints") / args.experiment_name
+    if accelerator.is_main_process:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Load the data
+    train_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
+        os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True)]
+    valid_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
+        os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True)]
+    
+    # Define the transforms
+    train_transforms = transforms.Compose([
+        transforms.LoadImaged(keys=["image", "mask"]),
+        transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
+        transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
+        transforms.ToTensord(keys=["image", "mask"]),
+        FilterSlicesByMaskFuncd(
+            keys=["image", "mask"],
+            mask_key="mask",
+            mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
+            slice_dim=3,
+        ),
     ])
 
-    train_dataset = LIDCInpaintingDataset(
-        args.data_dir, 
-        split="train", 
-        val_split=args.val_split, 
-        transform=transform, 
-        seed=args.seed
-    )
-    train_dataloader = DataLoader(
-        train_dataset, 
-        batch_size=args.batch_size, 
-        shuffle=True,
-        num_workers=args.num_workers,
-    )
+    valid_transforms = transforms.Compose([
+        transforms.LoadImaged(keys=["image", "mask"]),
+        transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.Resized(keys=["image", "mask"], spatial_size=(256, 256)),
+        transforms.ToTensord(keys=["image", "mask"]),
+        FilterSlicesByMaskFuncd(
+            keys=["image", "mask"],
+            mask_key="mask",
+            mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
+            slice_dim=3,
+        ),
+    ])
 
-    val_dataset = LIDCInpaintingDataset(
-        args.data_dir,
-        split="val",
-        val_split=args.val_split,
-        transform=transform,
-        seed=args.seed
-    )
-    val_dataloader = DataLoader(
-        val_dataset, 
-        batch_size=args.batch_size, 
-        shuffle=False,
-        num_workers=args.num_workers,
-    )
+    # Create the data loaders
+    train_data = data.Dataset(data=train_paths, transform=train_transforms)
+    train_data = data.DataLoader(train_data, batch_size=args.batch_size, num_workers=args.num_workers)
+    val_data = data.Dataset(data=valid_paths, transform=valid_transforms)
+    val_data = data.DataLoader(val_data, batch_size=args.batch_size, num_workers=args.num_workers)
 
-    model = UNet(spatial_dims=2, in_channels=3, out_channels=1, 
-                 channels=(32, 64, 128, 256, 512), strides=(2, 2, 2, 2), num_res_units=2)
-    model.to(device)
-
-    criterion = nn.MSELoss() if args.loss == 'mse' else SSIMLoss(spatial_dims=2)
-    optimizer = {
-        'sgd': lambda: optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay),
-        'adam': lambda: optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay),
-        'adamw': lambda: optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    }[args.optimizer]()
+    # Initialize the model
+    model = UNet(
+        spatial_dims=2, 
+        in_channels=3, 
+        out_channels=1, 
+        channels=args.channels, 
+        strides=args.strides, 
+        num_res_units=args.num_res_units
+    )
     
-    num_steps = len(train_dataloader) * args.epochs
-    scheduler = {
-        'step': lambda: optim.lr_scheduler.StepLR(optimizer, step_size=num_steps // 5, gamma=0.1),
-        'plateau': lambda: optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True),
-        'cosine': lambda: optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=0)
-    }.get(args.scheduler, lambda: None)()
+    # Initialize the optimizer and lr scheduler
+    lr = args.lr * (args.batch_size * accelerator.num_processes / 32)  # scale the learning rate
+    num_training_steps = len(train_data) * args.epochs // accelerator.num_processes
 
-    best_val_loss = float('inf')
-    save_path = None
+    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_training_steps)
+
+    # Initialize the l2 loss function
+    loss_function = nn.MSELoss()
+
+    # Prepare the model for training
+    model, optimizer, train_data, val_data = accelerator.prepare(
+        model, optimizer, train_data, val_data
+    )
+
+    # Training loop
     global_step = 0
-
+    min_val_loss = float("inf")
     for epoch in range(args.epochs):
         model.train()
-        running_loss = 0.0
+        epoch_vars = {
+            "total_loss": torch.tensor([0.0], device=accelerator.device), 
+            "num_batches": torch.tensor([0], device=accelerator.device)
+        }
 
-        for i, (input_img, output_img) in enumerate(tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}/{args.epochs}")):
-            input_img, output_img = input_img.to(device), output_img.to(device)
+        # Training epoch
+        for i, batch in enumerate(train_data):
 
+            # Forward pass
             optimizer.zero_grad()
+            pred = model(batch["masked"])
 
-            pred_img = model(input_img)
-            loss = criterion(pred_img, output_img)
-            running_loss += loss.item()
+            # Compute loss
+            loss = loss_function(pred, batch["image"])
 
-            loss.backward()
+            # Backward pass
+            accelerator.backward(loss)
             optimizer.step()
 
-            # increment global step
+            # Log the loss, lr and epoch
+            logs = {
+                "loss / step": loss.item(), 
+                "lr": optimizer.param_groups[0]["lr"],
+                "epoch": epoch,
+            }
+            accelerator.log(logs, step=global_step)
+
+            # Update epoch variables
+            epoch_vars["total_loss"] += loss.item()
+            epoch_vars["num_batches"] += 1
             global_step += 1
 
-            # log the loss and learning rate
-            wandb.log({'Training Loss / Step': loss.item(), 'Learning Rate': optimizer.param_groups[0]['lr']}, step=global_step)
-            
-            if scheduler:
-                if args.scheduler == 'plateau':
-                    scheduler.step(running_loss / len(train_dataloader))
-                else:
-                    scheduler.step()
+            # Update the lr scheduler
+            lr_scheduler.step()
         
-        avg_train_loss = running_loss / len(train_dataloader)
-        print(f'Epoch {epoch}, Training Loss: {avg_train_loss}')
-        wandb.log({'Training Loss / Epoch': avg_train_loss}, step=global_step)
-        
+        # Log the average loss for the epoch
+        accelerator.wait_for_everyone()
+        epoch_vars = {k: accelerator.reduce(v, mode="sum") for k, v in epoch_vars.items()}
+        accelerator.log({
+            "loss / epoch": epoch_vars["total_loss"] / epoch_vars["num_batches"]
+        }, step=global_step - 1)
+
+        # Validation epoch
         model.eval()
-        val_loss = 0.0
-        val_images = []
+        epoch_vars = {
+            "total_loss": torch.tensor([0.0], device=accelerator.device), 
+            "num_batches": torch.tensor([0], device=accelerator.device)
+        }
+        for i, batch in enumerate(val_data):
 
-        with torch.no_grad():
-            for i, (input_img, output_img) in enumerate(tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}/{args.epochs}")):
-                input_img, output_img = input_img.to(device), output_img.to(device)
+            # Forward pass
+            with torch.no_grad():
+                pred = model(batch["masked"])
 
-                pred_img = model(input_img)
-                loss = criterion(pred_img, output_img)
+            # Compute loss
+            loss = loss_function(pred, batch["image"])
 
-                val_loss += loss.item()
-                if i < 3:
-                    val_images.append(wandb.Image(
-                        input_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
-                        caption="Input Image"
-                    ))
-                    val_images.append(wandb.Image(
-                        output_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
-                        caption="Output Image"
-                    ))
-                    val_images.append(wandb.Image(
-                        pred_img[0].cpu().detach().numpy().transpose(1, 2, 0), 
-                        caption="Predicted Image"
-                    ))
+            # Update epoch variables
+            epoch_vars["total_loss"] += loss.item()
+            epoch_vars["num_batches"] += 1
 
-        avg_val_loss = val_loss / len(val_dataloader)
-        print(f'Epoch {epoch}, Validation Loss: {avg_val_loss / len(val_dataloader)}')
-        wandb.log({'Validation Loss': avg_val_loss, 'Example Images': val_images}, step=global_step)
+        # Log the average loss for the epoch
+        accelerator.wait_for_everyone()
+        epoch_vars = {k: accelerator.reduce(v, mode="sum") for k, v in epoch_vars.items()}
+        val_loss = epoch_vars["total_loss"] / epoch_vars["num_batches"]
+        accelerator.log({
+            "val_loss": val_loss,
+        }, step=global_step - 1)
 
-        # save the model if the validation loss has decreased
-        if epoch == 0 or val_loss < best_val_loss:
-            best_val_loss = val_loss
+        # Save the model checkpoint if the validation loss is lower
+        if val_loss < min_val_loss:
+            min_val_loss = val_loss
+            accelerator.save(model.state_dict(), checkpoint_dir / "best_model.pth")
+    
+    # Save the final model
+    accelerator.save(model.state_dict(), checkpoint_dir / "final_model.pth")
+    accelerator.end_training()
 
-            if not os.path.exists(args.out_dir):
-                os.makedirs(args.out_dir)
-            
-            if save_path:
-                os.remove(save_path)
-
-            save_path = Path(os.path.join(args.out_dir, args.experiment, f'model-epoch={epoch}-val_loss={val_loss}.pth'))
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), save_path)
-
-
+    
 if __name__ == "__main__":
-
     parser = get_args_parser()
     args = parser.parse_args()
-
     main(args)
