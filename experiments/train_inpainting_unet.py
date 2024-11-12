@@ -110,7 +110,7 @@ def main(args):
     # Initialize the model
     model = UNet(
         spatial_dims=2, 
-        in_channels=3, 
+        in_channels=1, 
         out_channels=1, 
         channels=args.channels, 
         strides=args.strides, 
