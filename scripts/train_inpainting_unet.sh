@@ -9,7 +9,7 @@ accelerate launch --multi-gpu --mixed_precision "fp16" \
     --data-dir "./data/LIDC-IDRI" \
     --batch-size 8 \
     --epochs 100 \
-    --lr 0.0001 \
+    --lr 0.000001 \
     --num-workers 10 \
     --wandb \
     --seed 42 \

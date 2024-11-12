@@ -85,6 +85,7 @@ def main(args):
     train_transforms = transforms.Compose([
         DebugLoadImagedWrapper(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.Orientationd(keys=["image", "mask"], axcodes="RAS"),
         transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
         transforms.ToTensord(keys=["image", "mask"]),
@@ -99,6 +100,7 @@ def main(args):
     valid_transforms = transforms.Compose([
         transforms.LoadImaged(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.Orientationd(keys=["image", "mask"], axcodes="RAS"),
         transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
         transforms.ToTensord(keys=["image", "mask"]),
