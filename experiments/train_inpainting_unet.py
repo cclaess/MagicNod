@@ -16,6 +16,15 @@ from accelerate.utils import set_seed
 from magicnod.transforms import FilterSlicesByMaskFuncd
 
 
+class DebugLoadImagedWrapper(transforms.LoadImaged):
+    def __call__(self, data):
+        try:
+            return super().__call__(data)
+        except Exception as e:
+            print(f"Error loading image: {data['image']}")
+            raise e
+
+
 def get_args_parser():
     """
     Get the argument parser for the script.
@@ -74,7 +83,7 @@ def main(args):
     
     # Define the transforms
     train_transforms = transforms.Compose([
-        transforms.LoadImaged(keys=["image", "mask"]),
+        DebugLoadImagedWrapper(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
         transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
