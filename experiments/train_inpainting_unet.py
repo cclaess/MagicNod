@@ -204,6 +204,11 @@ def main(args):
         }
         for i, batch in enumerate(val_data):
 
+            # Mask part of the input using CutOut with a rectangle of 32 x 32 pixels
+            mask = torch.ones_like(batch["image"])
+            mask[:, :, 176:208, 176:208] = 0
+            batch["masked"] = batch["image"] * mask
+
             # Forward pass
             with torch.no_grad():
                 pred = model(batch["masked"])
