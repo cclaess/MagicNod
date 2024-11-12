@@ -90,7 +90,8 @@ def main(args):
     valid_transforms = transforms.Compose([
         transforms.LoadImaged(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
-        transforms.Resized(keys=["image", "mask"], spatial_size=(256, 256)),
+        transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
+        transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
         transforms.ToTensord(keys=["image", "mask"]),
         FilterSlicesByMaskFuncd(
             keys=["image", "mask"],
@@ -143,6 +144,14 @@ def main(args):
 
         # Training epoch
         for i, batch in enumerate(train_data):
+
+            # Mask part of the input using CutOut with a rectangle of 16-128 x 16-128 pixels
+            random_mask = torch.ones_like(batch["image"])
+            mask_size = torch.randint(16, 128, (2,))
+            x = torch.randint(0, 384 - mask_size[0], (1,))
+            y = torch.randint(0, 384 - mask_size[1], (1,))
+            random_mask[:, :, x:x + mask_size[0], y:y + mask_size[1]] = 0
+            batch["masked"] = batch["image"] * random_mask
 
             # Forward pass
             optimizer.zero_grad()
