@@ -191,7 +191,7 @@ def main(args):
         
         # Log the average loss for the epoch
         accelerator.wait_for_everyone()
-        epoch_vars = {k: accelerator.reduce(v, mode="sum") for k, v in epoch_vars.items()}
+        epoch_vars = {k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()}
         accelerator.log({
             "loss / epoch": epoch_vars["total_loss"] / epoch_vars["num_batches"]
         }, step=global_step - 1)
@@ -217,7 +217,7 @@ def main(args):
 
         # Log the average loss for the epoch
         accelerator.wait_for_everyone()
-        epoch_vars = {k: accelerator.reduce(v, mode="sum") for k, v in epoch_vars.items()}
+        epoch_vars = {k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()}
         val_loss = epoch_vars["total_loss"] / epoch_vars["num_batches"]
         accelerator.log({
             "val_loss": val_loss,
