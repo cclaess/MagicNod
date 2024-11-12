@@ -85,6 +85,7 @@ def main(args):
     train_transforms = transforms.Compose([
         DebugLoadImagedWrapper(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
         transforms.Orientationd(keys=["image", "mask"], axcodes="RAS"),
         transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
@@ -100,6 +101,7 @@ def main(args):
     valid_transforms = transforms.Compose([
         transforms.LoadImaged(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+        transforms.ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
         transforms.Orientationd(keys=["image", "mask"], axcodes="RAS"),
         transforms.Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         transforms.ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
