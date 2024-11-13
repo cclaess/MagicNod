@@ -38,7 +38,7 @@ def get_args_parser():
 def load_model(model_path: str, channels: list, strides: list, num_res_units: int):
     model = UNet(
         spatial_dims=2, 
-        in_channels=3, 
+        in_channels=1, 
         out_channels=1, 
         channels=channels, 
         strides=strides, 
