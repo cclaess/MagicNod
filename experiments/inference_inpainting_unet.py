@@ -24,7 +24,7 @@ from magicnod.transforms import FilterSlicesByMaskFuncd
 def get_args_parser():
     parser = argparse.ArgumentParser(description="Inference script for UNet model on CT images")
     parser.add_argument("--model-path", required=True, type=str, help="Path to the saved best model checkpoint")
-    parser.add_argument("--input-dir", required=True, type=str, help="Directory with input images")
+    parser.add_argument("--data-dir", required=True, type=str, help="Directory with input images")
     parser.add_argument("--output-dir", required=True, type=str, help="Directory to save output images")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size for inference")
     parser.add_argument("--channels", type=int, nargs="+", default=[32, 64, 128, 256, 512], 
