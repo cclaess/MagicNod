@@ -9,6 +9,7 @@ import numpy as np
 from monai.networks.nets import UNet
 from monai.data import Dataset, DataLoader
 from monai.transforms import (
+    Compose,
     LoadImaged, 
     EnsureChannelFirstd, 
     ScaleIntensityRanged, 
@@ -61,7 +62,7 @@ def main(args):
     model.eval()
 
     # Define the transforms for data loading
-    transforms = transforms.Compose([
+    transforms = Compose([
         LoadImaged(keys=["image", "mask"]),
         EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
         ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
