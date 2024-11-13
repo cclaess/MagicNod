@@ -45,9 +45,8 @@ def load_model(model_path: str, channels: list, strides: list, num_res_units: in
         num_res_units=num_res_units
     )
 
-    ckpt = torch.load(model_path)
-    state_dict = ckpt["state_dict"]
-    state_dict = {k.replace("model.model.", "model."): v for k, v in state_dict.items()}
+    state_dict = torch.load(model_path)
+    state_dict = {k.replace("module.model.", "model."): v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
     
     return model
