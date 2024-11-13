@@ -1,12 +1,23 @@
-#!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=18
-#SBATCH --gpus=1
+#!/bin/sh
 #SBATCH --partition=gpu
-#SBATCH --time=6:00:00
+#SBATCH --nodes=1                               # Specify the amount of nodes
+#SBATCH --ntasks=1                              # Specify the number of tasks
+#SBATCH --cpus-per-task=18                      # Specify the number of CPUs/task
+#SBATCH --gpus=1                    	        # Specify the number of GPUs to use
+#SBATCH --time=1:00:00                          # Specify the maximum time the job can run
 
-cd "/gpfs/work4/0/tese0618/Projects/MagicNod"
+# Umbrella cluster:
+# 6x titanrtx.24gb
+# 8x rtx2080ti.11gb
+# 3x rtxa4500.20gb
+# 2x rtx3090ti.24gb
+
+# SURF Snellius HPC:
+# 4x a100.40gb
+# 4x h100.96gb
+
+set -a
+source ./.env
 
 apptainer exec --nv --bind $MOUNT_PATH --env-file ./.env $CONTAINER_PATH \
     /bin/bash scripts/inference_inpainting_unet.sh
