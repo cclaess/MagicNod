@@ -2,8 +2,8 @@ import os
 import argparse
 from pathlib import Path
 from glob import glob
+from tifffile import imsave
 
-import cv2
 import torch
 import numpy as np
 from monai.networks.nets import UNet
@@ -105,15 +105,15 @@ def main(args):
             masked = batch["masked"][i].cpu().numpy()
             inpainted = output[i].cpu().numpy()
 
-            image = round(image * 255).astype("uint8")
-            masked = round(masked * 255).astype("uint8")
-            inpainted = round(inpainted * 255).astype("uint8")
+            # image = (image * 255).astype("uint8")
+            # masked = (masked * 255).astype("uint8")
+            # inpainted = (inpainted * 255).astype("uint8")
 
             # Create a grid of images
             grid = np.concatenate([image, masked, inpainted], axis=1)
-            grid = np.moveaxis(grid, 0, -1)
-            grid_path = os.path.join(args.output_dir, f"output_{i}_{j}.png")
-            cv2.imwrite(grid_path, grid)
+            # grid = np.moveaxis(grid, 0, -1)
+            grid_path = os.path.join(args.output_dir, f"output_{i}_{j}.tif")
+            imsave(grid_path, grid)
 
 
 if __name__ == "__main__":
