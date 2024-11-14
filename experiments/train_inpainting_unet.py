@@ -16,15 +16,6 @@ from accelerate.utils import set_seed
 from magicnod.transforms import FilterSlicesByMaskFuncd
 
 
-class DebugLoadImagedWrapper(transforms.LoadImaged):
-    def __call__(self, data):
-        try:
-            return super().__call__(data)
-        except Exception as e:
-            print(f"Error loading image: {data['image']}")
-            raise e
-
-
 def get_args_parser():
     """
     Get the argument parser for the script.
@@ -83,7 +74,7 @@ def main(args):
     
     # Define the transforms
     train_transforms = transforms.Compose([
-        DebugLoadImagedWrapper(keys=["image", "mask"]),
+        transforms.LoadImaged(keys=["image", "mask"]),
         transforms.EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
         transforms.ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
         transforms.Orientationd(keys=["image", "mask"], axcodes="RAS"),
@@ -138,7 +129,7 @@ def main(args):
     lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_training_steps)
 
     # Initialize the l2 loss function
-    loss_function = nn.MSELoss()
+    loss_function = nn.MSELoss(reduction="none")  # no reduction for element-wise loss calculation
 
     # Prepare the model for training
     model, optimizer, train_data, val_data = accelerator.prepare(
@@ -160,18 +151,27 @@ def main(args):
 
             # Mask part of the input using CutOut with a rectangle of 16-128 x 16-128 pixels
             random_mask = torch.ones_like(batch["image"])
-            mask_size = torch.randint(16, 128, (2,))
-            x = torch.randint(0, 384 - mask_size[0], (1,))
-            y = torch.randint(0, 384 - mask_size[1], (1,))
-            random_mask[:, :, x:x + mask_size[0], y:y + mask_size[1]] = 0
-            batch["masked"] = batch["image"] * random_mask
+            masked_images = batch["image"].clone()  # deep-copy to avoid in-place operations
+
+            for j in range(batch["image"].size(0)):
+                # randomly select mask size and position for each image in the batch
+                mask_size = torch.randint(16, 128, (2,))
+                x = torch.randint(0, 384 - mask_size[0], (1,))
+                y = torch.randint(0, 384 - mask_size[1], (1,))
+
+                # create mask for this specific image
+                random_mask[j, :, x:x + mask_size[0], y:y + mask_size[1]] = 0
+                masked_images[j] *= random_mask[j]  # apply the mask to the image
+            
+            batch["masked"] = masked_images
 
             # Forward pass
             optimizer.zero_grad()
             pred = model(batch["masked"])
 
             # Compute loss
-            loss = loss_function(pred, batch["image"])
+            masked_loss = loss_function(pred, batch["image"]) * (1 - random_mask)
+            loss = masked_loss.sum() / (1 - random_mask).sum()  # normalize the loss by the number of masked pixels
 
             # Backward pass
             accelerator.backward(loss)
@@ -218,7 +218,9 @@ def main(args):
                 pred = model(batch["masked"])
 
             # Compute loss
-            loss = loss_function(pred, batch["image"])
+            masked_loss = loss_function(pred, batch["image"]) * (1 - mask)
+            loss = masked_loss.sum() / (1 - mask).sum()  # normalize the loss by the number of masked pixels
+
 
             # Update epoch variables
             epoch_vars["total_loss"] += loss.item()
