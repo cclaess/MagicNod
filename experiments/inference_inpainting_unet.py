@@ -27,7 +27,6 @@ def get_args_parser():
     parser.add_argument("--model-path", required=True, type=str, help="Path to the saved best model checkpoint")
     parser.add_argument("--data-dir", required=True, type=str, help="Directory with input images")
     parser.add_argument("--output-dir", required=True, type=str, help="Directory to save output images")
-    parser.add_argument("--batch-size", type=int, default=16, help="Batch size for inference")
     parser.add_argument("--channels", type=int, nargs="+", default=[32, 64, 128, 256, 512], 
                         help="Number of channels in each layer")
     parser.add_argument("--strides", type=int, nargs="+", default=[2, 2, 2, 2], help="Strides in each layer")
@@ -83,13 +82,13 @@ def main(args):
         os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True)]
     
     dataset = Dataset(data=data_paths, transform=transforms)
-    loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+    loader = DataLoader(dataset, batch_size=1, num_workers=args.num_workers)
 
     # Output directory
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     # Run inference
-    for batch in loader:
+    for i, batch in enumerate(loader):
         
         # Mask part of the input using CutOut with a rectangle of 32 x 32 pixels
         mask = torch.ones_like(batch["image"])
@@ -101,22 +100,19 @@ def main(args):
             output = model(batch["masked"].to(device))
 
         # Save the outputs as PNG images of a grid of the original, masked and inpainted slices
-        for i in range(output.shape[0]):
+        for j in range(output.shape[0]):
             image = batch["image"][i].cpu().numpy()
             masked = batch["masked"][i].cpu().numpy()
             inpainted = output[i].cpu().numpy()
 
-            image = (image * 255).astype("uint8")
-            masked = (masked * 255).astype("uint8")
-            inpainted = (inpainted * 255).astype("uint8")
-
-            print(image.shape, masked.shape, inpainted.shape)
+            image = round(image * 255).astype("uint8")
+            masked = round(masked * 255).astype("uint8")
+            inpainted = round(inpainted * 255).astype("uint8")
 
             # Create a grid of images
             grid = np.concatenate([image, masked, inpainted], axis=1)
             grid = np.moveaxis(grid, 0, -1)
-            print(grid.shape)
-            grid_path = os.path.join(args.output_dir, f"output_{i}.png")
+            grid_path = os.path.join(args.output_dir, f"output_{i}_{j}.png")
             cv2.imwrite(grid_path, grid)
 
 
