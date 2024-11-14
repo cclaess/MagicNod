@@ -5,7 +5,7 @@ wandb login
 
 accelerate launch --multi-gpu --mixed_precision "fp16" \
     experiments/train_inpainting_unet.py \
-    --experiment-name "test_run_lidc" \
+    --experiment-name "test_run_lidc_2" \
     --data-dir "./data/LIDC-IDRI" \
     --batch-size 8 \
     --epochs 100 \
