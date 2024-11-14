@@ -114,6 +114,7 @@ def main(args):
 
             # Create a grid of images
             grid = np.concatenate([image, masked, inpainted], axis=1)
+            grid = np.moveaxis(grid, 0, -1)
             print(grid.shape)
             grid_path = os.path.join(args.output_dir, f"output_{i}.png")
             cv2.imwrite(grid_path, grid)
