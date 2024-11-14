@@ -110,8 +110,11 @@ def main(args):
             masked = (masked * 255).astype("uint8")
             inpainted = (inpainted * 255).astype("uint8")
 
+            print(image.shape, masked.shape, inpainted.shape)
+
             # Create a grid of images
             grid = np.concatenate([image, masked, inpainted], axis=1)
+            print(grid.shape)
             grid_path = os.path.join(args.output_dir, f"output_{i}.png")
             cv2.imwrite(grid_path, grid)
 
