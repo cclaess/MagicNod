@@ -141,6 +141,7 @@ def main(args):
             mask_key="mask",
             mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
             slice_dim=3,
+            num_slices=16,
         ),
     ])
 
