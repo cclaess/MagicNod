@@ -197,6 +197,7 @@ def main(args):
     lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_d, T_max=N)
 
     # Prepare the models, data and optimizers for distributed training
+    model = SyncBatchNorm.convert_sync_batchnorm(model)
     discriminator = SyncBatchNorm.convert_sync_batchnorm(discriminator)
     model, discriminator, optimizer_g, optimizer_d, train_data, val_data = accelerator.prepare(
         model, discriminator, optimizer_g, optimizer_d, train_data, val_data
