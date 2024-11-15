@@ -221,6 +221,7 @@ def main(args):
         for batch in train_data:
 
             images = batch["image"]
+            images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
             mask_params = generate_random_masks(images.size(0), 384)
             mask = torch.ones_like(images)  # create a mask tensor with ones
@@ -303,6 +304,8 @@ def main(args):
             for step, batch in enumerate(val_data):
 
                 images = batch["image"]
+                images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
+                
                 mask = torch.ones_like(images)  # create a mask tensor with ones
                 mask[:, :, 176:208, 176:208] = 0  # mask a 32 x 32 region in the center of the image
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
