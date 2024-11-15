@@ -177,6 +177,7 @@ def main(args):
         spatial_dims=2,
         network_type="alex",
     )
+    perceptual_loss.to(accelerator.device)  # move the loss function to the device for distributed training
     perceptual_weight = 0.001
 
     l1_loss = L1Loss()
