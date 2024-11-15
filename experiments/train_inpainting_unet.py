@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import monai.data as data
 import monai.transforms as transforms
+from monai.losses import PerceptualLoss
 from monai.networks.nets import UNet
 from monai.utils import set_determinism
 from accelerate import Accelerator
@@ -44,6 +45,52 @@ def get_args_parser():
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
     
     return parser
+
+
+def generate_random_masks(batch_size, image_size, min_size=16, max_size=128):
+    """
+    Generate random mask coordinates and sizes for a batch of images.
+    
+    Args:
+    - batch_size (int): Number of images in the batch.
+    - image_size (int): Size of the images in the batch.
+    - min_size (int): Minimum size of the mask.
+    - max_size (int): Maximum size of the mask.
+
+    Returns:
+    - List(dict): coordinates and sizes of the masks for each image in the batch.
+    """
+    mask_params = []
+    for _ in range(batch_size):
+        mask_width, mask_height = torch.randint(min_size, max_size, (2,)).tolist()
+        x = torch.randint(0, image_size - mask_width, (1,)).item()
+        y = torch.randint(0, image_size - mask_height, (1,)).item()
+        mask_params.append({"x": x, "y": y, "width": mask_width, "height": mask_height})
+    return mask_params
+
+
+def masked_mse_perceptual_loss(pred, target, mask_params):
+    """
+    Compute the MSE and perceptual loss only within the masked region of the image.
+
+    Args:
+    - pred (torch.Tensor): Predicted image (batch_size, 1, H, W).
+    - target (torch.Tensor): Target image (batch_size, 1, H, W).
+    - mask_params (list(dict)): List of dictionaries with mask coordinates and sizes.
+
+    Returns:
+    - torch.Tensor: Loss value.
+    """
+    losses = []
+    for i, params in enumerate(mask_params):
+        x, y, width, height = params["x"], params["y"], params["width"], params["height"]
+        # Compute the MSE and perceptual loss only within the masked region
+        masked_pred = pred[i, :, x:x + width, y:y + height]
+        masked_target = target[i, :, x:x + width, y:y + height]
+        mse_loss = nn.MSELoss()(masked_pred, masked_target)
+        perceptual_loss = PerceptualLoss()(masked_pred, masked_target)
+        losses.append(mse_loss + perceptual_loss)
+    return torch.stack(losses).mean()
 
 
 def main(args):
