@@ -233,7 +233,7 @@ def main(args):
             for j, params in enumerate(mask_params):
                 x, y, w, h = params["x"], params["y"], params["width"], params["height"]
                 mask[j, :, x:x + w, y:y + h] = 0
-                masked_images[j] *= mask[j]
+                masked_images[j] = masked_images[j] * mask[j]
 
             # Generator part
             optimizer_g.zero_grad(set_to_none=True)
@@ -315,7 +315,7 @@ def main(args):
                 mask = torch.ones_like(images)  # create a mask tensor with ones
                 mask[:, :, 176:208, 176:208] = 0  # mask a 32 x 32 region in the center of the image
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
-                masked_images *= mask
+                masked_images = masked_images * mask
 
                 reconstruction, quantization_loss = model(images=masked_images)
 
