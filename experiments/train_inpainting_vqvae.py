@@ -124,6 +124,7 @@ def main(args):
             mask_key="mask",
             mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
             slice_dim=3,
+            num_slices=16,
         ),
     ])
 
@@ -182,8 +183,8 @@ def main(args):
     adv_weight = 0.01
     
     # Initialize the optimizers and lr schedulers
-    lr_g = args.lr_g * (args.batch_size * accelerator.num_processes / 32)  # scale the learning rate
-    lr_d = args.lr_d * (args.batch_size * accelerator.num_processes / 32)  # scale the learning rate
+    lr_g = args.lr_g * (args.batch_size * 16 * accelerator.num_processes / 256)  # scale the learning rate
+    lr_d = args.lr_d * (args.batch_size * 16 * accelerator.num_processes / 256)  # scale the learning rate
 
     N = len(train_data) * args.epochs // accelerator.num_processes  # number of training steps
 
