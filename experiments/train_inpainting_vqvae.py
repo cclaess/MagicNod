@@ -352,6 +352,9 @@ def main(args):
 
     
 if __name__ == "__main__":
+
+    torch.autograd.set_detect_anomaly(True)
+    
     parser = get_args_parser()
     args = parser.parse_args()
     main(args)
