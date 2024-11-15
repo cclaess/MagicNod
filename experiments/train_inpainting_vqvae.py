@@ -220,6 +220,8 @@ def main(args):
         # Training epoch
         for batch in train_data:
 
+            print("DEVICE", accelerator.device)
+
             images = batch["image"]
             images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
@@ -237,6 +239,9 @@ def main(args):
 
             reconstruction, quantization_loss = model(masked_images)
             logits_fake = discriminator(reconstruction.contiguous().float())[-1]
+
+            print("DEVICE RECONSTRUCTION", reconstruction.device)
+            print("DEVICE IMAGES", images.device)
 
             recons_loss = l1_loss(reconstruction.float(), images.float())
             p_loss = perceptual_loss(reconstruction.float(), images.float())
@@ -305,7 +310,7 @@ def main(args):
 
                 images = batch["image"]
                 images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
-                
+
                 mask = torch.ones_like(images)  # create a mask tensor with ones
                 mask[:, :, 176:208, 176:208] = 0  # mask a 32 x 32 region in the center of the image
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
