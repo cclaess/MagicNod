@@ -17,9 +17,9 @@ from monai.transforms import (
     ToTensord,
 )
 from monai.data import Dataset, DataLoader
-from monai.networks.nets import VQVAE, PatchDiscriminator
 from monai.utils import set_determinism
 from generative.losses import PatchAdversarialLoss, PerceptualLoss
+from generative.networks.nets import VQVAE, PatchDiscriminator
 from accelerate import Accelerator
 from accelerate.utils import set_seed
 from torchvision.utils import make_grid
