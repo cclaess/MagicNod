@@ -274,6 +274,10 @@ def main(args):
             epoch_vars["disc_epoch_loss"] += discriminator_loss.item()
             epoch_vars["num_batches"] += 1
             global_step += 1
+
+            # Update the learning rates
+            lr_scheduler_g.step()
+            lr_scheduler_d.step()
         
         # Log the average losses for the epoch
         accelerator.wait_for_everyone()
