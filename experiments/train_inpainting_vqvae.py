@@ -6,6 +6,7 @@ from pathlib import Path
 import wandb
 import torch
 from torch.nn import L1Loss, BatchNorm2d, InstanceNorm2d
+from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from monai.transforms import (
     Compose,
     LoadImaged,
@@ -233,12 +234,19 @@ def main(args):
     optimizer_g = torch.optim.AdamW(params=model.parameters(), lr=lr_g)
     optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr_d)
 
-    lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_g, T_0=N)
-    lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_d, T_0=N)
+    # Use a consine annealing learning rate schedule with linear warm-up
+    lr_scheduler_g = SequentialLR([
+        LinearLR(optimizer_g, start_factor=0.0, end_factor=1.0, total_iters=N // 10),
+        CosineAnnealingLR(optimizer_g, T_max=N - N // 10),
+    ])
+    lr_scheduler_d = SequentialLR([
+        LinearLR(optimizer_d, start_factor=0.0, end_factor=1.0, total_iters=N // 10),
+        CosineAnnealingLR(optimizer_d, T_max=N - N // 10),
+    ])
+    # lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_g, T_0=N)
+    # lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_d, T_0=N)
 
     # Prepare the models, data and optimizers for distributed training
-    # model = SyncBatchNorm.convert_sync_batchnorm(model)
-    # discriminator = SyncBatchNorm.convert_sync_batchnorm(discriminator)
     model, discriminator, optimizer_g, optimizer_d, train_data, val_data = accelerator.prepare(
         model, discriminator, optimizer_g, optimizer_d, train_data, val_data
     )
