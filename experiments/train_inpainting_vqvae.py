@@ -252,6 +252,16 @@ def main(args):
             generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
             loss_g = recons_loss + quantization_loss + perceptual_weight * p_loss + adv_weight * generator_loss
 
+            # Check for NaN values in the losses
+            if torch.isnan(recons_loss).any():
+                raise ValueError(f"NaN values in the reconstruction loss: {recons_loss}")
+            if torch.isnan(quantization_loss).any():
+                raise ValueError(f"NaN values in the quantization loss: {quantization_loss}")
+            if torch.isnan(p_loss).any():
+                raise ValueError(f"NaN values in the perceptual loss: {p_loss}")
+            if torch.isnan(generator_loss).any():
+                raise ValueError(f"NaN values in the generator loss: {generator_loss}")
+
             accelerator.backward(loss_g)
             optimizer_g.step()
 
