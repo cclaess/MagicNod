@@ -233,8 +233,8 @@ def main(args):
     optimizer_g = torch.optim.AdamW(params=model.parameters(), lr=lr_g)
     optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr_d)
 
-    lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_g, T_max=N)
-    lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_d, T_max=N)
+    lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_g, T_0=N)
+    lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_d, T_0=N)
 
     # Prepare the models, data and optimizers for distributed training
     # model = SyncBatchNorm.convert_sync_batchnorm(model)
@@ -285,16 +285,6 @@ def main(args):
             p_loss = perceptual_loss(reconstruction.float(), images.float())
             generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
             loss_g = recons_loss + quantization_loss + perceptual_weight * p_loss + adv_weight * generator_loss
-
-            # Check for NaN values in the losses
-            if torch.isnan(recons_loss).any():
-                raise ValueError(f"NaN values in the reconstruction loss: {recons_loss}")
-            if torch.isnan(quantization_loss).any():
-                raise ValueError(f"NaN values in the quantization loss: {quantization_loss}")
-            if torch.isnan(p_loss).any():
-                raise ValueError(f"NaN values in the perceptual loss: {p_loss}")
-            if torch.isnan(generator_loss).any():
-                raise ValueError(f"NaN values in the generator loss: {generator_loss}")
 
             accelerator.backward(loss_g)
             optimizer_g.step()
