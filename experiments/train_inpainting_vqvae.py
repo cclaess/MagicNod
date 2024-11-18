@@ -172,6 +172,12 @@ def main(args):
         num_channels=64,
     )
 
+    def init_weights(m):
+        if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
+            torch.nn.init.kaiming_normal_(m.weight)
+    model.apply(init_weights)
+    discriminator.apply(init_weights)
+
     # Define the loss functions
     perceptual_loss = PerceptualLoss(
         spatial_dims=2,
