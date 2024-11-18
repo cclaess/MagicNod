@@ -5,7 +5,7 @@ from pathlib import Path
 
 import wandb
 import torch
-from torch.nn import L1Loss, SyncBatchNorm
+from torch.nn import L1Loss, BatchNorm2d, InstanceNorm2d
 from monai.transforms import (
     Compose,
     LoadImaged,
@@ -173,10 +173,18 @@ def main(args):
     )
 
     # Change all batch norm layers to instance norm layers for the discriminator
-    for m in discriminator.modules():
-        if isinstance(m, torch.nn.BatchNorm2d):
-            m = torch.nn.InstanceNorm2d(m.num_features, affine=True)
+    def replace_batchnorm_with_instancenorm(module):
+        # Iterate through the children of the module
+        for name, child in module.named_children():
+            if isinstance(child, BatchNorm2d):
+                # Replace BatchNorm2d with InstanceNorm2d
+                setattr(module, name, InstanceNorm2d(child.num_features))
+            else:
+                # Recursively apply to child modules
+                replace_batchnorm_with_instancenorm(child)
+    replace_batchnorm_with_instancenorm(discriminator)
 
+    # Initialize the weights of the models
     def init_weights(m):
         if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
             torch.nn.init.kaiming_normal_(m.weight)
