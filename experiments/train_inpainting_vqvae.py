@@ -236,11 +236,11 @@ def main(args):
 
     # Use a consine annealing learning rate schedule with linear warm-up
     lr_scheduler_g = SequentialLR([
-        LinearLR(optimizer_g, start_factor=0.0, end_factor=1.0, total_iters=N // 10),
+        LinearLR(optimizer_g, start_factor=0.01, end_factor=1.0, total_iters=N // 10),
         CosineAnnealingLR(optimizer_g, T_max=N - N // 10),
     ])
     lr_scheduler_d = SequentialLR([
-        LinearLR(optimizer_d, start_factor=0.0, end_factor=1.0, total_iters=N // 10),
+        LinearLR(optimizer_d, start_factor=0.01, end_factor=1.0, total_iters=N // 10),
         CosineAnnealingLR(optimizer_d, T_max=N - N // 10),
     ])
     # lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_g, T_0=N)
