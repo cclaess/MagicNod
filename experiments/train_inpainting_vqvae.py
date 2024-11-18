@@ -62,6 +62,39 @@ def get_args_parser():
     return parser
 
 
+def replace_bn_with_in(module):
+    """
+    Replace all BatchNorm2d layers with InstanceNorm2d layers in a module.
+
+    Args:
+    - module (torch.nn.Module): Module to replace the BatchNorm2d layers with InstanceNorm2d layers.
+
+    Returns:
+    - None
+    """
+    # Iterate through the children of the module
+    for name, child in module.named_children():
+        if isinstance(child, BatchNorm2d):
+            # Replace BatchNorm2d with InstanceNorm2d
+            setattr(module, name, InstanceNorm2d(child.num_features))
+        else:
+            # Recursively apply to child modules
+            replace_bn_with_in(child)
+
+def init_weights(m):
+    """
+    Initialize the weights of a module using Kaiming normal initialization.
+
+    Args:
+    - m (torch.nn.Module): Module to initialize the weights.
+
+    Returns:
+    - None
+    """
+    if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
+        torch.nn.init.kaiming_normal_(m.weight)
+
+
 def generate_random_masks(batch_size, image_size, min_size=16, max_size=128):
     """
     Generate random mask coordinates and sizes for a batch of images.
@@ -168,26 +201,14 @@ def main(args):
     discriminator = PatchDiscriminator(
         spatial_dims=2,
         in_channels=1,
-        num_layers_d=3,
+        num_layers_d=6,
         num_channels=64,
     )
 
     # Change all batch norm layers to instance norm layers for the discriminator
-    def replace_batchnorm_with_instancenorm(module):
-        # Iterate through the children of the module
-        for name, child in module.named_children():
-            if isinstance(child, BatchNorm2d):
-                # Replace BatchNorm2d with InstanceNorm2d
-                setattr(module, name, InstanceNorm2d(child.num_features))
-            else:
-                # Recursively apply to child modules
-                replace_batchnorm_with_instancenorm(child)
-    replace_batchnorm_with_instancenorm(discriminator)
+    replace_bn_with_in(discriminator)
 
     # Initialize the weights of the models
-    def init_weights(m):
-        if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
-            torch.nn.init.kaiming_normal_(m.weight)
     model.apply(init_weights)
     discriminator.apply(init_weights)
 
