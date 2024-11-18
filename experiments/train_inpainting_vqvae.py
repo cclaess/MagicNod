@@ -172,6 +172,11 @@ def main(args):
         num_channels=64,
     )
 
+    # Change all batch norm layers to instance norm layers for the discriminator
+    for m in discriminator.modules():
+        if isinstance(m, torch.nn.BatchNorm2d):
+            m = torch.nn.InstanceNorm2d(m.num_features, affine=True)
+
     def init_weights(m):
         if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
             torch.nn.init.kaiming_normal_(m.weight)
@@ -203,8 +208,8 @@ def main(args):
     lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_d, T_max=N)
 
     # Prepare the models, data and optimizers for distributed training
-    model = SyncBatchNorm.convert_sync_batchnorm(model)
-    discriminator = SyncBatchNorm.convert_sync_batchnorm(discriminator)
+    # model = SyncBatchNorm.convert_sync_batchnorm(model)
+    # discriminator = SyncBatchNorm.convert_sync_batchnorm(discriminator)
     model, discriminator, optimizer_g, optimizer_d, train_data, val_data = accelerator.prepare(
         model, discriminator, optimizer_g, optimizer_d, train_data, val_data
     )
