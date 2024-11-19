@@ -25,8 +25,14 @@ from accelerate import Accelerator
 from accelerate.utils import set_seed
 from torchvision.utils import make_grid
 
-
 from magicnod.transforms import FilterSlicesByMaskFuncd
+
+# Monkey-patch the lpips `normalize_tensor` function to avoid nan values in sqrt
+import lpips
+def normalize_tensor(in_feat, eps=1e-10):
+    norm_factor = torch.sqrt(torch.sum(in_feat**2, dim=1, keepdim=True) + eps)
+    return in_feat / (norm_factor + eps)
+lpips.normalize_tensor = normalize_tensor
 
 
 def get_args_parser():
@@ -404,10 +410,12 @@ def main(args):
         # Save the model checkpoint if the validation loss is lower
         if val_loss < min_val_loss:
             min_val_loss = val_loss
-            accelerator.save(model.state_dict(), checkpoint_dir / "best_model.pth")
+            unwrapped_model = accelerator.unwrap_model(model)
+            accelerator.save(unwrapped_model.state_dict(), checkpoint_dir / "best_model.pth")
     
     # Save the final model
-    accelerator.save(model.state_dict(), checkpoint_dir / "final_model.pth")
+    unwrapped_model = accelerator.unwrap_model(model)
+    accelerator.save(unwrapped_model.state_dict(), checkpoint_dir / "final_model.pth")
     accelerator.end_training()
 
     
