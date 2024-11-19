@@ -9,8 +9,8 @@ accelerate launch --multi-gpu \
     --data-dir "./data/LIDC-IDRI" \
     --batch-size 4 \
     --epochs 500 \
-    --lr-g 1e-7 \
-    --lr-d 5e-7 \
+    --lr-g 1e-5 \
+    --lr-d 5e-5 \
     --num-workers 10 \
     --wandb \
     --seed 42 \
