@@ -54,9 +54,11 @@ def get_args_parser():
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train the model")
     parser.add_argument("--lr-g", type=float, default=1e-4, help="Learning rate for the generator")
     parser.add_argument("--lr-d", type=float, default=5e-4, help="Learning rate for the discriminator")
-    parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loading")
+    parser.add_argument("--perceptual-weight", type=float, default=0.001, help="Weight for the perceptual loss")
+    parser.add_argument("--adv-weight", type=float, default=0.01, help="Weight for the adversarial loss")
 
     # Misc
+    parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loading")
     parser.add_argument("--wandb", action="store_true", help="Use wandb for logging")
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
     
@@ -219,11 +221,9 @@ def main(args):
         network_type="alex",
     )
     perceptual_loss.to(accelerator.device)  # move the loss function to the device for distributed training
-    perceptual_weight = 0.001
 
     l1_loss = L1Loss()
     adv_loss = PatchAdversarialLoss(criterion="least_squares")
-    adv_weight = 0.01
     
     # Initialize the optimizers and lr schedulers
     lr_g = args.lr_g * (args.batch_size * 16 * accelerator.num_processes / 256)  # scale the learning rate
@@ -300,9 +300,10 @@ def main(args):
             recons_loss = l1_loss(reconstruction.float(), images.float())
             p_loss = perceptual_loss(reconstruction.float(), images.float())
             generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
-            loss_g = recons_loss + quantization_loss + perceptual_weight * p_loss + adv_weight * generator_loss
+            loss_g = recons_loss + quantization_loss + args.perceptual_weight * p_loss + args.adv_weight * generator_loss
 
             accelerator.backward(loss_g)
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip the gradients
             optimizer_g.step()
 
             # Discriminator part
@@ -314,9 +315,10 @@ def main(args):
             loss_d_real = adv_loss(logits_real, target_is_real=True, for_discriminator=True)
             discriminator_loss = 0.5 * (loss_d_fake + loss_d_real)
 
-            loss_d = adv_weight * discriminator_loss
+            loss_d = args.adv_weight * discriminator_loss
 
             accelerator.backward(loss_d)
+            accelerator.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)  # clip the gradients
             optimizer_d.step()
 
             # Log the losses, learning rates and epoch
