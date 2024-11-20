@@ -396,6 +396,7 @@ def main(args):
                         torch.cat([images[:1], masked_images[:1, 1:, ...], masked_images[:1, :1, ...], reconstruction[:1]]),
                         nrow=4,
                         normalize=True,
+                        scale_each=True,
                     )
                     image_grid = image_grid.permute(1, 2, 0).cpu().numpy()
                     accelerator.log({"reconstruction": [wandb.Image(image_grid)]}, step=global_step - 1)
