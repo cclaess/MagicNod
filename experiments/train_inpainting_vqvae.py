@@ -104,7 +104,7 @@ def init_weights(m):
         torch.nn.init.kaiming_normal_(m.weight)
 
 
-def generate_random_masks(batch_size, image_size, min_size=16, max_size=128):
+def generate_random_masks(batch_size, image_size, min_size=16, max_size=256):
     """
     Generate random mask coordinates and sizes for a batch of images.
     
