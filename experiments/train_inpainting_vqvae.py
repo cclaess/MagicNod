@@ -196,7 +196,7 @@ def main(args):
     # Initialize the models
     model = VQVAE(
         spatial_dims=2,
-        in_channels=1,
+        in_channels=2,
         out_channels=1,
         num_channels=args.num_channels,
         num_res_channels=args.num_res_channels,
@@ -257,8 +257,6 @@ def main(args):
         ],
         milestones=[N // 10],
     )
-    # lr_scheduler_g = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_g, T_0=N)
-    # lr_scheduler_d = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer_d, T_0=N)
 
     # Prepare the models, data and optimizers for distributed training
     model, discriminator, optimizer_g, optimizer_d, train_data, val_data = accelerator.prepare(
@@ -295,7 +293,11 @@ def main(args):
             for j, params in enumerate(mask_params):
                 x, y, w, h = params["x"], params["y"], params["width"], params["height"]
                 mask[j, :, x:x + w, y:y + h] = 0
-                masked_images[j] = masked_images[j] * mask[j]
+            masked_images = masked_images * mask
+
+            # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
+            mask = mask * -1 + 1
+            masked_images = torch.cat([masked_images, mask], dim=1)
 
             # Generator part
             optimizer_g.zero_grad(set_to_none=True)
@@ -378,6 +380,10 @@ def main(args):
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
                 masked_images = masked_images * mask
 
+                # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
+                mask = mask * -1 + 1
+                masked_images = torch.cat([masked_images, mask], dim=1)
+
                 reconstruction, quantization_loss = model(images=masked_images)
 
                 recons_loss = l1_loss(reconstruction.float(), images.float())
@@ -387,10 +393,9 @@ def main(args):
 
                     # Create wandb image with the original image, the masked image and the reconstruction
                     image_grid = make_grid(
-                        torch.cat([images[:1], masked_images[:1], reconstruction[:1]]),
-                        nrow=3,
+                        torch.cat([images[:1], masked_images[:1, 1:, ...], masked_images[:1, :1, ...], reconstruction[:1]]),
+                        nrow=4,
                         normalize=True,
-                        scale_each=True,
                     )
                     image_grid = image_grid.permute(1, 2, 0).cpu().numpy()
                     accelerator.log({"reconstruction": [wandb.Image(image_grid)]}, step=global_step - 1)
