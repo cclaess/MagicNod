@@ -1,8 +1,8 @@
 #!/bin/sh
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu_h100
 #SBATCH --nodes=1                               # Specify the amount of nodes
 #SBATCH --ntasks=1                              # Specify the number of tasks
-#SBATCH --cpus-per-task=18                      # Specify the number of CPUs/task
+#SBATCH --cpus-per-task=16                      # Specify the number of CPUs/task
 #SBATCH --gpus=1                    	        # Specify the number of GPUs to use
 #SBATCH --time=1:00:00                          # Specify the maximum time the job can run
 
