@@ -21,6 +21,8 @@ from monai.utils import set_determinism
 from generative.networks.nets import VQVAE
 from tqdm import tqdm
 from scipy.ndimage import label, find_objects
+from torchvision.utils import make_grid
+from PIL import Image
 
 from magicnod.transforms import FilterSlicesByMaskFuncd
 
@@ -166,6 +168,19 @@ def main(args):
             for slice_num, (orig_image, mask, recon_image) in enumerate(
                 zip(images, rect_masks, reconstructed_images)):
 
+                # Make grid to save later
+                grid_image = make_grid(
+                    torch.cat([
+                        orig_image.unsqueeze(0), 
+                        mask.unsqueeze(0), 
+                        recon_image.unsqueeze(0),
+                    ], dim=0), 
+                    nrow=3,
+                    normalize=True,
+                    value_range=(0, 1),
+                )
+
+
                 # Get the original image path from metatensor
                 orig_image = orig_image[0].cpu().numpy()
                 mask = mask[0].cpu().numpy()
@@ -184,9 +199,15 @@ def main(args):
                 imsave(save_dir / f"{slice_num:04}_mask.tiff", mask)
                 imsave(save_dir / f"{slice_num:04}_reconstruction.tiff", recon_image)
 
-                # Save the combined image
+                # Save the combined image using 
                 combined_image = np.concatenate([orig_image, mask, recon_image], axis=1)
                 imsave(save_dir / f"{slice_num:04}_combined.tiff", combined_image)
+
+                # Save the grid image as PNG
+                grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                grid_image = Image.fromarray(grid_image)
+                grid_image.save(save_dir / f"{slice_num:04}_grid.png")
+
 
 
 if __name__ == "__main__":
