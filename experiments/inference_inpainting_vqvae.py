@@ -59,6 +59,8 @@ def mask_with_bounding_boxes(binary_mask):
 
     # Convert the result back to a torch tensor with same dtype and device as the input
     result_mask = torch.tensor(result_mask_np, dtype=binary_mask.dtype, device=binary_mask.device)
+    result_mask = result_mask.unsqueeze(1)  # Add the channel dimension back
+    
     return result_mask
 
 
