@@ -60,7 +60,7 @@ def mask_with_bounding_boxes(binary_mask):
     # Convert the result back to a torch tensor with same dtype and device as the input
     result_mask = torch.tensor(result_mask_np, dtype=binary_mask.dtype, device=binary_mask.device)
     result_mask = result_mask.unsqueeze(1)  # Add the channel dimension back
-    
+
     return result_mask
 
 
@@ -141,7 +141,7 @@ def main(args):
     # Load the trained weights
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state_dict = torch.load(args.model_path, map_location=device)
-    model.load_state_dict(state_dict)
+    model.to(device).load_state_dict(state_dict)
     model.eval()
 
     # Loop over the data
