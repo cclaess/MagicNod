@@ -18,6 +18,7 @@ from monai.transforms import (
 )
 from monai.data import Dataset, DataLoader
 from monai.utils import set_determinism
+from generative.networks.nets import VQVAE
 from tqdm import tqdm
 from scipy.ndimage import label, find_objects
 
@@ -71,7 +72,17 @@ def get_args_parser():
     parser = argparse.ArgumentParser(description="Inference for nodule segmentation and saving slices")
     parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
     parser.add_argument("--output-dir", required=True, type=str, help="Path to save the output slices")
+
+    # Model configuration
     parser.add_argument("--model-path", required=True, type=str, help="Path to the trained model")
+    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512), help="Number of channels in the model")
+    parser.add_argument("--num-res-channels", type=int, default=512, help="Number of channels in the residual blocks")
+    parser.add_argument("--num-res-layers", type=int, default=2, help="Number of residual layers in the model")
+    parser.add_argument("--downsample-parameters", type=int, nargs=4, default=(2, 4, 1, 1), help="Parameters for the downsampling layers")
+    parser.add_argument("--upsample-parameters", type=int, nargs=5, default=(2, 4, 1, 1, 0), help="Parameters for the upsampling layers")
+    parser.add_argument("--num-embeddings", type=int, default=256, help="Number of embeddings in the VQ-VAE")
+    parser.add_argument("--embedding-dim", type=int, default=632, help="Dimension of the embeddings in the VQ-VAE")
+
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for inference")
     parser.add_argument("--num-workers", type=int, default=4, help="Number of workers for data loading")
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
@@ -111,9 +122,24 @@ def main(args):
     val_data = Dataset(data=valid_paths, transform=valid_transforms)
     val_loader = DataLoader(val_data, batch_size=args.batch_size, num_workers=args.num_workers)
 
-    # Load the trained model
+    # Initialize the model
+    model = VQVAE(
+        spatial_dims=2,
+        in_channels=2,
+        out_channels=1,
+        num_channels=args.num_channels,
+        num_res_channels=args.num_res_channels,
+        num_res_layers=args.num_res_layers,
+        downsample_parameters=args.downsample_parameters,
+        upsample_parameters=args.upsample_parameters,
+        num_embeddings=args.num_embeddings,
+        embedding_dim=args.embedding_dim,
+    )
+
+    # Load the trained weights
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = torch.load(args.model_path, map_location=device)
+    state_dict = torch.load(args.model_path, map_location=device)
+    model.load_state_dict(state_dict)
     model.eval()
 
     # Loop over the data
