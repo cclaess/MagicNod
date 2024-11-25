@@ -16,7 +16,6 @@ from monai.transforms import (
     ResizeWithPadOrCropd,
     ToTensord,
 )
-from monai.data import Dataset, DataLoader
 from monai.utils import set_determinism
 from generative.networks.nets import VQVAE
 from tqdm import tqdm
@@ -102,11 +101,14 @@ def main(args):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data paths
+    train_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
+        os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True)]
     valid_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
         os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True)]
+    paths = train_paths + valid_paths
 
     # Define the transforms
-    valid_transforms = Compose([
+    transforms = Compose([
         LoadImaged(keys=["image", "mask"]),
         EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
         ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
@@ -121,10 +123,6 @@ def main(args):
             slice_dim=3,
         ),
     ])
-
-    # Create the data loader
-    val_data = Dataset(data=valid_paths, transform=valid_transforms)
-    val_loader = DataLoader(val_data, batch_size=args.batch_size, num_workers=args.num_workers)
 
     # Initialize the model
     model = VQVAE(
@@ -148,66 +146,66 @@ def main(args):
 
     # Loop over the data
     with torch.no_grad():
-        for batch_idx, batch in enumerate(tqdm(val_loader, desc="Processing batches")):
-            images = batch["image"].to(device)
-            masks = batch["mask"].to(device)
+        for path in enumerate(tqdm(paths, desc="Processing batches")):
+            
+            # Load the data
+            data = transforms(path)
 
-            # Create rectangular masks
-            rect_masks = mask_with_bounding_boxes(masks)
+            # Get the original paths
+            orig_path = Path(data[0]["image"].meta["filename_or_obj"])
 
-            # Combine image and mask as input
-            masked_images = images.clone()
-            masked_images = masked_images * rect_masks  # Apply mask to image
-            inversed_masks = rect_masks * -1 + 1  # Inverse the mask
-            input_images = torch.cat([masked_images, inversed_masks], dim=1)
 
-            # Generate reconstructed images
-            reconstructed_images, _ = model(input_images)
+            for slice_idx, slice_data in enumerate(data):
+                image = slice_data["image"].unsqueeze(0).to(device)
+                mask = slice_data["mask"].unsqueeze(0).to(device)
 
-            # Save the results
-            for slice_num, (orig_image, mask, recon_image) in enumerate(
-                zip(images, rect_masks, reconstructed_images)):
+                # Create rectangular mask
+                rect_mask = mask_with_bounding_boxes(mask)
+
+                # Combine image and mask as input
+                masked_image = image.clone()
+                masked_image = masked_image * rect_mask  # Apply mask to image
+                inversed_mask = rect_mask * -1 + 1  # Inverse the mask
+                input_image = torch.cat([masked_image, inversed_mask], dim=1)
+
+                # Generate reconstructed image
+                reconstructed_image, _ = model(input_image)
 
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([
-                        orig_image.unsqueeze(0), 
-                        mask.unsqueeze(0), 
-                        recon_image.unsqueeze(0),
-                    ], dim=0), 
+                    torch.cat([image, rect_mask, reconstructed_image], dim=0), 
                     nrow=3,
                     normalize=True,
                     value_range=(0, 1),
                 )
 
-
                 # Get the original image path from metatensor
-                orig_image = orig_image[0].cpu().numpy()
-                mask = mask[0].cpu().numpy()
-                recon_image = recon_image[0].cpu().numpy()
+                image = image.squeeze(0).cpu().numpy()
+                mask = mask.squeeze(0).cpu().numpy()
+                reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
 
                 # Normalize images for saving
-                orig_image = (orig_image * 2000 - 1000).astype(np.int16)  # Undo normalization
+                image = (image * 2000 - 1000).astype(np.int16)  # Undo normalization
                 mask = mask.astype(np.uint8)
-                recon_image = (recon_image * 2000 - 1000).astype(np.int16)
+                reconstructed_image = (reconstructed_image * 2000 - 1000).astype(np.int16)
 
                 # Save the individual slices as tiff images
-                save_dir = output_dir / f"batch_{batch_idx}"
+                save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
                 save_dir.mkdir(parents=True, exist_ok=True)
 
-                imsave(save_dir / f"{slice_num:04}_original.tiff", orig_image)
-                imsave(save_dir / f"{slice_num:04}_mask.tiff", mask)
-                imsave(save_dir / f"{slice_num:04}_reconstruction.tiff", recon_image)
+                image_name = orig_path.replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
+                mask_name = orig_path.replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
+                recon_name = orig_path.replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
+                grid_name = orig_path.replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
-                # Save the combined image using 
-                combined_image = np.concatenate([orig_image, mask, recon_image], axis=1)
-                imsave(save_dir / f"{slice_num:04}_combined.tiff", combined_image)
+                imsave(save_dir / image_name, image)
+                imsave(save_dir / mask_name, mask)
+                imsave(save_dir / recon_name, reconstructed_image)
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
                 grid_image = Image.fromarray(grid_image)
-                grid_image.save(save_dir / f"{slice_num:04}_grid.png")
-
+                grid_image.save(save_dir / grid_name)
 
 
 if __name__ == "__main__":
