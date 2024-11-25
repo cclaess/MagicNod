@@ -146,9 +146,7 @@ def main(args):
 
     # Loop over the data
     with torch.no_grad():
-        for path in enumerate(tqdm(paths, desc="Processing batches")):
-
-            print(f"Processing {path}")
+        for path in tqdm(paths, desc="Processing batches"):
             
             # Load the data
             data = transforms(path)
