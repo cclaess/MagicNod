@@ -193,10 +193,10 @@ def main(args):
                 save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
                 save_dir.mkdir(parents=True, exist_ok=True)
 
-                image_name = orig_path.replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
-                mask_name = orig_path.replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
-                recon_name = orig_path.replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
-                grid_name = orig_path.replace("image.nii.gz", f"grid_{slice_idx:04}.png")
+                image_name = str(orig_path).replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
+                mask_name = str(orig_path).replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
+                recon_name = str(orig_path).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
+                grid_name = str(orig_path).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
                 imsave(save_dir / image_name, image)
                 imsave(save_dir / mask_name, mask)
