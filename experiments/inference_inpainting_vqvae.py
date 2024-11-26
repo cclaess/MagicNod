@@ -19,7 +19,7 @@ from monai.transforms import (
 from monai.utils import set_determinism
 from generative.networks.nets import VQVAE
 from tqdm import tqdm
-from cv2 import boundingRect
+# from cv2 import findContours, boundingRect
 from scipy.ndimage import label, find_objects
 from torchvision.utils import make_grid
 from PIL import Image
@@ -180,10 +180,16 @@ def main(args):
                 # Use a gaussian weighting around the edges to blend the images
                 
                 # Get bounding box of the mask
-                bbox = boundingRect(mask.squeeze().cpu().numpy())
+                labeled_mask, _ = label(mask.squeeze(0).cpu().numpy())
+                bbox = find_objects(labeled_mask)[0]
 
                 # expand square in mask with 3 pixels in each direction
-                bbox = (bbox[0]-3, bbox[1]-3, bbox[2]+6, bbox[3]+6)
+                bbox = (
+                    bbox[0].start - 3, 
+                    bbox[1].start - 3, 
+                    bbox[0].stop - bbox[0].start + 6, 
+                    bbox[1].stop - bbox[1].start + 6
+                )
 
                 # Create new mask with the bounding box
                 smooth_mask = torch.zeros_like(mask)
