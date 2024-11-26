@@ -2,6 +2,7 @@ import os
 import argparse
 from glob import glob
 from pathlib import Path
+from tifffile import imwrite
 
 import torch
 import numpy as np
@@ -179,9 +180,9 @@ def main(args):
                 )
 
                 # Get the original image path from metatensor
-                image = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
-                mask = mask.squeeze(0).permute(1, 2, 0).cpu().numpy()
-                reconstructed_image = reconstructed_image.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                image = image.squeeze(0).cpu().numpy()
+                mask = mask.squeeze(0).cpu().numpy()
+                reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
 
                 # Normalize images for saving
                 image = image * 2000 - 1000  # Undo normalization
@@ -197,9 +198,12 @@ def main(args):
                 recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
-                Image.fromarray(image).save(save_dir / image_name)
-                Image.fromarray(mask).save(save_dir / mask_name)
-                Image.fromarray(reconstructed_image).save(save_dir / recon_name)
+                # Image.fromarray(image).save(save_dir / image_name)
+                # Image.fromarray(mask).save(save_dir / mask_name)
+                # Image.fromarray(reconstructed_image).save(save_dir / recon_name)
+                imwrite(save_dir / image_name, image)
+                imwrite(save_dir / mask_name, mask)
+                imwrite(save_dir / recon_name, reconstructed_image)
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
