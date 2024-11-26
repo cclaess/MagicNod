@@ -194,6 +194,7 @@ def main(args):
                         smooth_mask[:, :, min_row:max_row, min_col:max_col] = 1
 
                 # Apply convolutional filter to mask to create a smooth transition
+                smooth_mask = smooth_mask.astype(torch.float32)
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
 
                 # Cut and paste the reconstructed image within the mask region back to the original image
