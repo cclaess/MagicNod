@@ -151,6 +151,10 @@ def main(args):
             # Load the data
             data = transforms(path)
 
+            # Check if the data list is empty
+            if not data:
+                continue
+
             # Get the original paths
             orig_path = Path(data[0]["image"].meta["filename_or_obj"])
 
