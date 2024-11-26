@@ -195,7 +195,8 @@ def main(args):
 
                 # Apply convolutional filter to mask to create a smooth transition
                 smooth_mask = smooth_mask.astype(torch.float32)
-                smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
+                kernel = torch.ones(1, 1, 7, 7).to(device) / 49
+                smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
                 # Cut and paste the reconstructed image within the mask region back to the original image
                 cut_paste_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
