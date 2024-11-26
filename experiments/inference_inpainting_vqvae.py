@@ -193,19 +193,19 @@ def main(args):
                 save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
                 save_dir.mkdir(parents=True, exist_ok=True)
 
-                image_path = str(orig_path).replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
-                mask_path = str(orig_path).replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
-                recon_path = str(orig_path).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
-                grid_path = str(orig_path).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
+                image_name = str(orig_path.name).replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
+                mask_name = str(orig_path.name).replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
+                recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
+                grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
-                imwrite(image_path, image)
-                imwrite(mask_path, mask)
-                imwrite(recon_path, reconstructed_image)
+                imwrite(save_dir / image_name, image)
+                imwrite(save_dir / mask_name, mask)
+                imwrite(save_dir / recon_name, reconstructed_image)
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
                 grid_image = Image.fromarray(grid_image)
-                grid_image.save(grid_path)
+                grid_image.save(save_dir / grid_name)
 
 
 if __name__ == "__main__":
