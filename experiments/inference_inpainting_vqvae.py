@@ -2,7 +2,6 @@ import os
 import argparse
 from glob import glob
 from pathlib import Path
-from tifffile import imwrite
 
 import torch
 import numpy as np
@@ -173,7 +172,7 @@ def main(args):
 
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([image, rect_mask, reconstructed_image], dim=0), 
+                    torch.cat([image, inversed_mask, reconstructed_image], dim=0), 
                     nrow=3,
                     normalize=True,
                     value_range=(0, 1),
@@ -185,9 +184,9 @@ def main(args):
                 reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
 
                 # Normalize images for saving
-                image = (image * 2000 - 1000).astype(np.int16)  # Undo normalization
+                image = image * 2000 - 1000  # Undo normalization
                 mask = mask.astype(np.uint8)
-                reconstructed_image = (reconstructed_image * 2000 - 1000).astype(np.int16)
+                reconstructed_image = reconstructed_image * 2000 - 1000
 
                 # Save the individual slices as tiff images
                 save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
@@ -198,14 +197,13 @@ def main(args):
                 recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
-                imwrite(save_dir / image_name, image)
-                imwrite(save_dir / mask_name, mask)
-                imwrite(save_dir / recon_name, reconstructed_image)
+                Image.from_array(image).save(save_dir / image_name)
+                Image.from_array(mask).save(save_dir / mask_name)
+                Image.from_array(reconstructed_image).save(save_dir / recon_name)
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
-                grid_image = Image.fromarray(grid_image)
-                grid_image.save(save_dir / grid_name)
+                Image.fromarray(grid_image).save(save_dir / grid_name)
 
 
 if __name__ == "__main__":
