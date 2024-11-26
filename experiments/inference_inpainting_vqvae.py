@@ -190,10 +190,11 @@ def main(args):
                     bbox[0].stop - bbox[0].start + 6, 
                     bbox[1].stop - bbox[1].start + 6
                 )
+                print("bbox: ", bbox)
 
                 # Create new mask with the bounding box
                 smooth_mask = torch.zeros_like(mask)
-                smooth_mask[:, bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] = 1
+                smooth_mask[:, :, bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] = 1
 
                 # Apply convolutional filter to mask to create a smooth transition
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
