@@ -180,7 +180,7 @@ def main(args):
                 # Use a gaussian weighting around the edges to blend the images
                 
                 # Get bounding box of the mask
-                bbox = boundingRect(mask.squeeze(0).cpu().numpy())
+                bbox = boundingRect(mask.squeeze().cpu().numpy())
 
                 # expand square in mask with 3 pixels in each direction
                 bbox = (bbox[0]-3, bbox[1]-3, bbox[2]+6, bbox[3]+6)
