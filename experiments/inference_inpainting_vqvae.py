@@ -194,7 +194,6 @@ def main(args):
                         smooth_mask[:, :, min_row:max_row, min_col:max_col] = 1
 
                 # Apply convolutional filter to mask to create a smooth transition
-                smooth_mask = smooth_mask.astype(torch.float32)
                 kernel = torch.ones(1, 1, 7, 7).to(device) / 49
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
