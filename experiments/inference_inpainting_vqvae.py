@@ -205,6 +205,7 @@ def main(args):
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                print(grid_image.shape)
                 Image.fromarray(grid_image).save(save_dir / grid_name)
 
 
