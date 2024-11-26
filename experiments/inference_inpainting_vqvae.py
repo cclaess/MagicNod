@@ -179,9 +179,9 @@ def main(args):
                 )
 
                 # Get the original image path from metatensor
-                image = image.squeeze(0).cpu().numpy()
-                mask = mask.squeeze(0).cpu().numpy()
-                reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
+                image = image.permute(1, 2, 0).squeeze(0).cpu().numpy()
+                mask = mask.permute(1, 2, 0).squeeze(0).cpu().numpy()
+                reconstructed_image = reconstructed_image.permute(1, 2, 0).squeeze(0).cpu().numpy()
 
                 # Normalize images for saving
                 image = image * 2000 - 1000  # Undo normalization
@@ -196,8 +196,6 @@ def main(args):
                 mask_name = str(orig_path.name).replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
                 recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
-
-                print(image.shape, mask.shape, reconstructed_image.shape)
 
                 Image.fromarray(image).save(save_dir / image_name)
                 Image.fromarray(mask).save(save_dir / mask_name)
