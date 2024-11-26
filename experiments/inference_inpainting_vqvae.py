@@ -19,6 +19,7 @@ from monai.transforms import (
 from monai.utils import set_determinism
 from generative.networks.nets import VQVAE
 from tqdm import tqdm
+from cv2 import boundingRect
 from scipy.ndimage import label, find_objects
 from torchvision.utils import make_grid
 from PIL import Image
@@ -175,9 +176,28 @@ def main(args):
                 # Generate reconstructed image
                 reconstructed_image, _ = model(input_image)
 
+                # Cut and paste the reconstructed image within the mask region back to the original image
+                # Use a gaussian weighting around the edges to blend the images
+                
+                # Get bounding box of the mask
+                bbox = boundingRect(mask.squeeze(0).cpu().numpy())
+
+                # expand square in mask with 3 pixels in each direction
+                bbox = (bbox[0]-3, bbox[1]-3, bbox[2]+6, bbox[3]+6)
+
+                # Create new mask with the bounding box
+                smooth_mask = torch.zeros_like(mask)
+                smooth_mask[:, bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] = 1
+
+                # Apply convolutional filter to mask to create a smooth transition
+                smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
+
+                # Cut and paste the reconstructed image within the mask region back to the original image
+                cut_paste_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
+
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([image, inversed_mask, reconstructed_image], dim=0), 
+                    torch.cat([image, reconstructed_image, cut_paste_image], dim=0), 
                     nrow=3,
                     normalize=True,
                     value_range=(0, 1),
@@ -187,11 +207,13 @@ def main(args):
                 image = image.squeeze(0).cpu().numpy()
                 mask = mask.squeeze(0).cpu().numpy()
                 reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
+                cut_paste_image = cut_paste_image.squeeze(0).cpu().numpy()
 
                 # Normalize images for saving
                 image = image * 2000 - 1000  # Undo normalization
                 mask = mask.astype(np.uint8)
                 reconstructed_image = reconstructed_image * 2000 - 1000
+                cut_paste_image = cut_paste_image * 2000 - 1000
 
                 # Save the individual slices as tiff images
                 save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
@@ -200,6 +222,7 @@ def main(args):
                 image_name = str(orig_path.name).replace(".nii.gz", f"_slice_{slice_idx:04}.tiff")
                 mask_name = str(orig_path.name).replace("image.nii.gz", f"mask_slice_{slice_idx:04}.tiff")
                 recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
+                cut_paste_name = str(orig_path.name).replace("image.nii.gz", f"cut_paste_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
                 # Image.fromarray(image).save(save_dir / image_name)
@@ -208,6 +231,7 @@ def main(args):
                 imwrite(save_dir / image_name, image)
                 imwrite(save_dir / mask_name, mask)
                 imwrite(save_dir / recon_name, reconstructed_image)
+                imwrite(save_dir / cut_paste_name, cut_paste_image)
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
