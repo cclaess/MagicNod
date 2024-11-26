@@ -197,6 +197,8 @@ def main(args):
                 recon_name = str(orig_path.name).replace("image.nii.gz", f"recon_slice_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
+                print(image.shape, mask.shape, reconstructed_image.shape)
+
                 Image.fromarray(image).save(save_dir / image_name)
                 Image.fromarray(mask).save(save_dir / mask_name)
                 Image.fromarray(reconstructed_image).save(save_dir / recon_name)
