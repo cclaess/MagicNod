@@ -180,7 +180,7 @@ def main(args):
                 # Use a gaussian weighting around the edges to blend the images
                 
                 # Get bounding box of the mask
-                labeled_mask, _ = label(mask.squeeze(0).cpu().numpy())
+                labeled_mask, _ = label(inversed_mask.squeeze(0).cpu().numpy())
                 bbox = find_objects(labeled_mask)[0]
 
                 # expand square in mask with 3 pixels in each direction
