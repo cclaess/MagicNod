@@ -179,9 +179,9 @@ def main(args):
                 )
 
                 # Get the original image path from metatensor
-                image = image.permute(1, 2, 0).squeeze(0).cpu().numpy()
-                mask = mask.permute(1, 2, 0).squeeze(0).cpu().numpy()
-                reconstructed_image = reconstructed_image.permute(1, 2, 0).squeeze(0).cpu().numpy()
+                image = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                mask = mask.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                reconstructed_image = reconstructed_image.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
                 # Normalize images for saving
                 image = image * 2000 - 1000  # Undo normalization
