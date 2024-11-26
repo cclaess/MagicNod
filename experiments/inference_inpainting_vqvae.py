@@ -203,7 +203,7 @@ def main(args):
 
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([image, reconstructed_image, cut_paste_image], dim=0), 
+                    torch.cat([image, reconstructed_image, smooth_mask, smooth_mask * -1 + 1, cut_paste_image], dim=0), 
                     nrow=3,
                     normalize=True,
                     value_range=(0, 1),
