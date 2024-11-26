@@ -181,7 +181,7 @@ def main(args):
                 
                 # Get bounding box of the mask
                 smooth_mask = torch.zeros_like(mask)
-                labeled_mask, _ = label(inversed_mask.squeeze(0).cpu().numpy())
+                labeled_mask, _ = label(inversed_mask.squeeze().cpu().numpy())
                 slices = find_objects(labeled_mask)  # Find bounding box slices for each component
                 for s in slices:
                     if s is not None:  # Valid slice
