@@ -185,13 +185,17 @@ def main(args):
                 slices = find_objects(labeled_mask)  # Find bounding box slices for each component
                 for s in slices:
                     if s is not None:  # Valid slice
-                        smooth_mask[:, :, s[0].start - 3:s[0].stop + 6, s[1].start - 3:s[1].stop + 6] = 1
+                        min_row, max_row = s[0].start - 3, s[0].stop + 6
+                        min_col, max_col = s[1].start - 3, s[1].stop + 6
+
+                        # Fill the bounding box region in the result mask
+                        smooth_mask[:, :, min_row:max_row, min_col:max_col] = 1
 
                 # Apply convolutional filter to mask to create a smooth transition
-                smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
+                smooth_mask_2 = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
 
                 # Cut and paste the reconstructed image within the mask region back to the original image
-                cut_paste_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
+                cut_paste_image = image * (smooth_mask_2 * -1 + 1) + reconstructed_image * smooth_mask_2
 
                 # Make grid to save later
                 grid_image = make_grid(
