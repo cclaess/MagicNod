@@ -180,21 +180,12 @@ def main(args):
                 # Use a gaussian weighting around the edges to blend the images
                 
                 # Get bounding box of the mask
-                labeled_mask, _ = label(inversed_mask.squeeze(0).cpu().numpy())
-                bbox = find_objects(labeled_mask)[0]
-
-                # expand square in mask with 3 pixels in each direction
-                bbox = (
-                    bbox[0].start - 3, 
-                    bbox[1].start - 3, 
-                    bbox[0].stop - bbox[0].start + 6, 
-                    bbox[1].stop - bbox[1].start + 6
-                )
-                print("bbox: ", bbox)
-
-                # Create new mask with the bounding box
                 smooth_mask = torch.zeros_like(mask)
-                smooth_mask[:, :, bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]] = 1
+                labeled_mask, _ = label(inversed_mask.squeeze(0).cpu().numpy())
+                slices = find_objects(labeled_mask)  # Find bounding box slices for each component
+                for s in slices:
+                    if s is not None:  # Valid slice
+                        smooth_mask[:, :, s[0].start - 3:s[0].stop + 6, s[1].start - 3:s[1].stop + 6] = 1
 
                 # Apply convolutional filter to mask to create a smooth transition
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, torch.ones(1, 1, 7, 7).to(device), padding=3)
@@ -242,7 +233,6 @@ def main(args):
 
                 # Save the grid image as PNG
                 grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
-                print(grid_image.shape)
                 Image.fromarray(grid_image).save(save_dir / grid_name)
 
 
