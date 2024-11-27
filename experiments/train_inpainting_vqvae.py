@@ -317,6 +317,7 @@ def main(args):
             images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
             mask = generate_random_circular_masks(images.size(0), 384).to(accelerator.device)
+            masked_images = images.clone()  # deep-copy to avoid in-place operations
             masked_images = masked_images * mask
 
             # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
@@ -399,10 +400,10 @@ def main(args):
                 images = batch["image"]
                 images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-                mask = torch.ones_like(images)  # create a mask tensor with ones
-                mask[:, :, 176:208, 176:208] = 0  # mask a 32 x 32 region in the center of the image
+                mask = generate_random_circular_masks(images.size(0), 384).to(accelerator.device)
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
                 masked_images = masked_images * mask
+
 
                 # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
                 mask = mask * -1 + 1
