@@ -137,7 +137,7 @@ def create_circular_average_kernel(size, radius):
 
     # Add a batch and channel dimension
     kernel = kernel.unsqueeze(0).unsqueeze(0)
-    
+
     return kernel
 
 
@@ -259,7 +259,7 @@ def main(args):
                 smooth_mask = rect_mask.clone()
 
                 # Apply convolutional filter to mask to create a smooth transition
-                kernel = create_circular_average_kernel(7, 3)  # torch.ones(1, 1, 7, 7).to(device) / 49
+                kernel = create_circular_average_kernel(7, 3).to(device)  # torch.ones(1, 1, 7, 7).to(device) / 49
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
                 # Cut and paste the reconstructed image within the mask region back to the original image
