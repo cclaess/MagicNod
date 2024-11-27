@@ -110,6 +110,8 @@ def mask_with_circle(binary_mask):
     result_mask = torch.tensor(result_mask_np, dtype=binary_mask.dtype, device=binary_mask.device)
     result_mask = result_mask.unsqueeze(1)  # Add the channel dimension back
 
+    return result_mask
+
 
 def create_circular_average_kernel(size, radius):
     """
