@@ -185,8 +185,8 @@ def main(args):
                 slices = find_objects(labeled_mask)  # Find bounding box slices for each component
                 for s in slices:
                     if s is not None:  # Valid slice
-                        min_row, max_row = s[0].start - 3, s[0].stop + 6
-                        min_col, max_col = s[1].start - 3, s[1].stop + 6
+                        min_row, max_row = s[0].start, s[0].stop
+                        min_col, max_col = s[1].start, s[1].stop
 
                         print("bbox", min_row, max_row, min_col, max_col)
 
