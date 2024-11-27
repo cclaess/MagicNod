@@ -53,8 +53,8 @@ def mask_with_bounding_boxes(binary_mask):
 
         for s in slices:
             if s is not None:  # Valid slice
-                min_row, max_row = s[0].start, s[0].stop
-                min_col, max_col = s[1].start, s[1].stop
+                min_row, max_row = s[0].start - 3, s[0].stop + 6
+                min_col, max_col = s[1].start - 3, s[1].stop + 6
 
                 # Fill the bounding box region in the result mask
                 result_mask_np[batch_idx, min_row:max_row, min_col:max_col] = 0
