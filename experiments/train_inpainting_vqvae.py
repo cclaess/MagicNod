@@ -144,8 +144,8 @@ def generate_random_circular_masks(batch_size, image_size, min_radius=8, max_rad
     mask = np.ones((batch_size, 1, image_size, image_size))
     for i in range(batch_size):
         mask_radius = np.random.randint(min_radius, max_radius)
-        x0 = np.random.randint(0, image_size)
-        y0 = np.random.randint(0, image_size)
+        x0 = np.random.randint(mask_radius, image_size - mask_radius)
+        y0 = np.random.randint(mask_radius, image_size - mask_radius)
 
         y, x = np.ogrid[:image_size, :image_size]
         circle = (x - x0) ** 2 + (y - y0) ** 2 <= mask_radius ** 2
@@ -421,7 +421,7 @@ def main(args):
                         torch.cat([images[:1], masked_images[:1, 1:, ...], masked_images[:1, :1, ...], reconstruction[:1]]),
                         nrow=4,
                         normalize=True,
-                        scale_each=True,
+                        value_range=(0, 1),
                     )
                     image_grid = image_grid.permute(1, 2, 0).cpu().numpy()
                     accelerator.log({"reconstruction": [wandb.Image(image_grid)]}, step=global_step - 1)
