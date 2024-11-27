@@ -5,6 +5,7 @@ from pathlib import Path
 
 import wandb
 import torch
+import numpy as np
 from torch.nn import L1Loss, BatchNorm2d, InstanceNorm2d
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from monai.transforms import (
@@ -117,13 +118,42 @@ def generate_random_masks(batch_size, image_size, min_size=16, max_size=256):
     Returns:
     - List(dict): coordinates and sizes of the masks for each image in the batch.
     """
-    mask_params = []
-    for _ in range(batch_size):
+    mask = np.ones(batch_size, 1, image_size, image_size)
+    for i in range(batch_size):
         mask_width, mask_height = torch.randint(min_size, max_size, (2,)).tolist()
         x = torch.randint(0, image_size - mask_width, (1,)).item()
         y = torch.randint(0, image_size - mask_height, (1,)).item()
-        mask_params.append({"x": x, "y": y, "width": mask_width, "height": mask_height})
-    return mask_params
+
+        mask[i, :, x:x + mask_width, y:y + mask_height] = 0
+    return mask
+
+
+def generate_random_circular_masks(batch_size, image_size, min_radius=8, max_radius=64):
+    """
+    Generate random circular mask coordinates and sizes for a batch of images.
+    
+    Args:
+    - batch_size (int): Number of images in the batch.
+    - image_size (int): Size of the images in the batch.
+    - min_radius (int): Minimum radius of the mask.
+    - max_radius (int): Maximum radius of the mask.
+
+    Returns:
+    - List(dict): coordinates and sizes of the masks for each image in the batch.
+    """
+    mask = np.ones((batch_size, 1, image_size, image_size))
+    for i in range(batch_size):
+        mask_radius = np.random.randint(min_radius, max_radius)
+        x0 = np.random.randint(0, image_size)
+        y0 = np.random.randint(0, image_size)
+
+        y, x = np.ogrid[:image_size, :image_size]
+        circle = (x - x0) ** 2 + (y - y0) ** 2 <= mask_radius ** 2
+        mask[i] = np.logical_not(np.logical_and(mask[i], circle))
+
+    mask = torch.tensor(mask, dtype=torch.float32)
+
+    return mask
 
 
 def main(args):
@@ -286,13 +316,7 @@ def main(args):
             images = batch["image"]
             images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-            mask_params = generate_random_masks(images.size(0), 384)
-            mask = torch.ones_like(images)  # create a mask tensor with ones
-            masked_images = images.clone()  # deep-copy to avoid in-place operations
-
-            for j, params in enumerate(mask_params):
-                x, y, w, h = params["x"], params["y"], params["width"], params["height"]
-                mask[j, :, x:x + w, y:y + h] = 0
+            mask = generate_random_circular_masks(images.size(0), 384).to(accelerator.device)
             masked_images = masked_images * mask
 
             # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
