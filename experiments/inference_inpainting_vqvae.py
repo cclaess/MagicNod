@@ -66,6 +66,75 @@ def mask_with_bounding_boxes(binary_mask):
     return result_mask
 
 
+def mask_with_circle(binary_mask):
+    """
+    Replace each connected component in the binary mask with a circle of minimal size that covers the whole 
+    component.
+
+    Args:
+        binary_mask (torch.Tensor): Binary mask tensor of shape (batch, 1, height, width).
+
+    Returns:
+        torch.Tensor: Modified mask of the same shape as the input, where connected components
+                        are replaced by circles.
+    """
+    assert binary_mask.ndim == 4, "Input mask must have shape (batch, 1, height, width)"
+    assert binary_mask.size(1) == 1, "The second dimension of the mask must be 1"
+
+    # Convert to numpy array for processing
+    binary_mask_np = binary_mask.squeeze(1).cpu().numpy()  # Shape: (batch, height, width)
+
+    # Initialize a new mask to store the result
+    result_mask_np = np.ones_like(binary_mask_np)
+
+    for batch_idx, mask in enumerate(binary_mask_np):
+        labeled_mask, _ = label(mask)
+        slices = find_objects(labeled_mask)
+
+        for s in slices:
+            if s is not None:
+                min_row, max_row = s[0].start - 3, s[0].stop + 6
+                min_col, max_col = s[1].start - 3, s[1].stop + 6
+
+                # Get the center of the bounding box
+                center_row = (min_row + max_row) // 2
+                center_col = (min_col + max_col) // 2
+                radius = max(max_row - min_row, max_col - min_col) // 2
+
+                # Create a circle mask
+                y, x = np.ogrid[:mask.shape[0], :mask.shape[1]]
+                circle = (x - center_col) ** 2 + (y - center_row) ** 2 <= radius ** 2
+                result_mask_np[batch_idx] = np.logical_and(result_mask_np[batch_idx], circle)
+
+    # Convert the result back to a torch tensor with same dtype and device as the input
+    result_mask = torch.tensor(result_mask_np, dtype=binary_mask.dtype, device=binary_mask.device)
+    result_mask = result_mask.unsqueeze(1)  # Add the channel dimension back
+
+
+def create_circular_average_kernel(size, radius):
+    """
+    Create a circular averaging kernel in PyTorch.
+
+    Args:
+        size (int): The width and height of the kernel (assumes square kernel).
+        radius (float): The radius of the circle to average within.
+
+    Returns:
+        torch.Tensor: A 2D kernel with the circle averaging mask.
+    """
+    # Create a grid of coordinates centered at the middle
+    y, x = torch.meshgrid(torch.arange(size), torch.arange(size), indexing='ij')
+    center = (size - 1) / 2
+    distance = torch.sqrt((x - center) ** 2 + (y - center) ** 2)
+
+    # Create the circular mask
+    mask = (distance <= radius).float()
+
+    # Normalize to ensure the sum of the kernel equals 1
+    kernel = mask / mask.sum()
+    return kernel
+
+
 def get_args_parser():
     """
     Get the argument parser for the inference script.
@@ -165,7 +234,7 @@ def main(args):
                 mask = slice_data["mask"].unsqueeze(0).to(device)
 
                 # Create rectangular mask
-                rect_mask = mask_with_bounding_boxes(mask)
+                rect_mask = mask_with_circle(mask)
 
                 # Combine image and mask as input
                 masked_image = image.clone()
@@ -181,20 +250,10 @@ def main(args):
                 
                 # Get bounding box of the mask
                 smooth_mask = torch.zeros_like(mask)
-                labeled_mask, _ = label(inversed_mask.squeeze().cpu().numpy())
-                slices = find_objects(labeled_mask)  # Find bounding box slices for each component
-                for s in slices:
-                    if s is not None:  # Valid slice
-                        min_row, max_row = s[0].start, s[0].stop
-                        min_col, max_col = s[1].start, s[1].stop
-
-                        print("bbox", min_row, max_row, min_col, max_col)
-
-                        # Fill the bounding box region in the result mask
-                        smooth_mask[:, :, min_row:max_row, min_col:max_col] = 1
+                smooth_mask = rect_mask.clone()
 
                 # Apply convolutional filter to mask to create a smooth transition
-                kernel = torch.ones(1, 1, 7, 7).to(device) / 49
+                kernel = create_circular_average_kernel(7, 3)  # torch.ones(1, 1, 7, 7).to(device) / 49
                 smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
                 # Cut and paste the reconstructed image within the mask region back to the original image
@@ -202,8 +261,8 @@ def main(args):
 
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([image, reconstructed_image, cut_paste_image], dim=0), 
-                    nrow=3,
+                    torch.cat([image, reconstructed_image, smooth_mask, cut_paste_image], dim=0), 
+                    nrow=4,
                     normalize=True,
                     value_range=(0, 1),
                 )
@@ -230,9 +289,6 @@ def main(args):
                 cut_paste_name = str(orig_path.name).replace("image.nii.gz", f"cut_paste_{slice_idx:04}.tiff")
                 grid_name = str(orig_path.name).replace("image.nii.gz", f"grid_{slice_idx:04}.png")
 
-                # Image.fromarray(image).save(save_dir / image_name)
-                # Image.fromarray(mask).save(save_dir / mask_name)
-                # Image.fromarray(reconstructed_image).save(save_dir / recon_name)
                 imwrite(save_dir / image_name, image)
                 imwrite(save_dir / mask_name, mask)
                 imwrite(save_dir / recon_name, reconstructed_image)
