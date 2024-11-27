@@ -134,6 +134,10 @@ def create_circular_average_kernel(size, radius):
 
     # Normalize to ensure the sum of the kernel equals 1
     kernel = mask / mask.sum()
+
+    # Add a batch and channel dimension
+    kernel = kernel.unsqueeze(0).unsqueeze(0)
+    
     return kernel
 
 
