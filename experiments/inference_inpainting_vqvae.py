@@ -256,7 +256,7 @@ def main(args):
                 
                 # Get bounding box of the mask
                 smooth_mask = torch.zeros_like(mask)
-                smooth_mask = rect_mask.clone()
+                smooth_mask = inversed_mask.clone()
 
                 # Apply convolutional filter to mask to create a smooth transition
                 kernel = create_circular_average_kernel(7, 3).to(device)  # torch.ones(1, 1, 7, 7).to(device) / 49
