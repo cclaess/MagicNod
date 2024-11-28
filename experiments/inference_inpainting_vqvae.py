@@ -267,8 +267,8 @@ def main(args):
 
                 # Make grid to save later
                 grid_image = make_grid(
-                    torch.cat([image, reconstructed_image, smooth_mask, cut_paste_image], dim=0), 
-                    nrow=4,
+                    torch.cat([image, masked_image, reconstructed_image, smooth_mask, cut_paste_image], dim=0), 
+                    nrow=5,
                     normalize=True,
                     value_range=(0, 1),
                 )
