@@ -50,9 +50,9 @@ def get_args_parser():
     parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
 
     # Model and training configuration
-    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512), help="Number of channels in the model")
-    parser.add_argument("--num-res-channels", type=int, default=512, help="Number of channels in the residual blocks")
-    parser.add_argument("--num-res-layers", type=int, default=2, help="Number of residual layers in the model")
+    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the model")
+    parser.add_argument("--num-res-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the residual blocks")
+    parser.add_argument("--num-res-layers", type=int, default=3, help="Number of residual layers in the model")
     parser.add_argument("--downsample-parameters", type=int, nargs=4, default=(2, 4, 1, 1), help="Parameters for the downsampling layers")
     parser.add_argument("--upsample-parameters", type=int, nargs=5, default=(2, 4, 1, 1, 0), help="Parameters for the upsampling layers")
     parser.add_argument("--num-embeddings", type=int, default=256, help="Number of embeddings in the VQ-VAE")
@@ -61,8 +61,8 @@ def get_args_parser():
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train the model")
     parser.add_argument("--lr-g", type=float, default=1e-4, help="Learning rate for the generator")
     parser.add_argument("--lr-d", type=float, default=5e-4, help="Learning rate for the discriminator")
-    parser.add_argument("--perceptual-weight", type=float, default=0.001, help="Weight for the perceptual loss")
-    parser.add_argument("--adv-weight", type=float, default=0.01, help="Weight for the adversarial loss")
+    parser.add_argument("--perceptual-weight", type=float, default=0.005, help="Weight for the perceptual loss")
+    parser.add_argument("--adv-weight", type=float, default=0.05, help="Weight for the adversarial loss")
 
     # Misc
     parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loading")

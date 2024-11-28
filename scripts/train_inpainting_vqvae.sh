@@ -5,10 +5,10 @@ wandb login
 
 accelerate launch --multi-gpu \
     experiments/train_inpainting_vqvae.py \
-    --experiment-name "test_run_lidc_5" \
+    --experiment-name "test_run_lidc_6" \
     --data-dir "./data/LIDC-IDRI" \
     --batch-size 4 \
-    --epochs 500 \
+    --epochs 1000 \
     --lr-g 1e-5 \
     --lr-d 5e-5 \
     --num-workers 10 \
