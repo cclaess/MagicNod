@@ -104,7 +104,7 @@ def mask_with_circle(binary_mask):
                 # Create a circle mask
                 y, x = np.ogrid[:mask.shape[0], :mask.shape[1]]
                 circle = (x - center_col) ** 2 + (y - center_row) ** 2 <= radius ** 2
-                result_mask_np[batch_idx] = np.logical_and(result_mask_np[batch_idx], circle)
+                result_mask_np[batch_idx] = np.logical_not(np.logical_and(result_mask_np[batch_idx], circle))
 
     # Convert the result back to a torch tensor with same dtype and device as the input
     result_mask = torch.tensor(result_mask_np, dtype=binary_mask.dtype, device=binary_mask.device)
