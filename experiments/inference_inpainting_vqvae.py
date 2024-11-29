@@ -154,9 +154,9 @@ def get_args_parser():
 
     # Model configuration
     parser.add_argument("--model-path", required=True, type=str, help="Path to the trained model")
-    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512), help="Number of channels in the model")
-    parser.add_argument("--num-res-channels", type=int, default=512, help="Number of channels in the residual blocks")
-    parser.add_argument("--num-res-layers", type=int, default=2, help="Number of residual layers in the model")
+    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the model")
+    parser.add_argument("--num-res-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the residual blocks")
+    parser.add_argument("--num-res-layers", type=int, default=3, help="Number of residual layers in the model")
     parser.add_argument("--downsample-parameters", type=int, nargs=4, default=(2, 4, 1, 1), help="Parameters for the downsampling layers")
     parser.add_argument("--upsample-parameters", type=int, nargs=5, default=(2, 4, 1, 1, 0), help="Parameters for the upsampling layers")
     parser.add_argument("--num-embeddings", type=int, default=256, help="Number of embeddings in the VQ-VAE")
