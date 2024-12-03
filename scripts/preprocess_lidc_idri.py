@@ -54,7 +54,7 @@ def main(args):
         mask_files = glob(os.path.join(series_dir, "nodule=*-rad=*.nii.gz"))
 
         # Combine the masks of different radiologists into a single mask per nodule using majority voting
-        # Only include nodules with at least 3 radiologist annotations
+        # Only include nodules with at least 2 radiologist annotations
         # Then combine the masks of the nodules into a single mask for the series
         nodule_masks = {}
         for mask_file in mask_files:
@@ -66,7 +66,7 @@ def main(args):
         # Combine the masks for all nodules
         series_mask = None
         for nodule_masks_list in nodule_masks.values():
-            if len(nodule_masks_list) < 3:
+            if len(nodule_masks_list) < 2:
                 continue
             nodule_masks_list = [sitk.ReadImage(mask_file) for mask_file in nodule_masks_list]
             # Combine the masks of the same nodule using majority voting
