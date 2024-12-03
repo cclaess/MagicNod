@@ -36,7 +36,6 @@ def get_args_parser():
     """
     parser = argparse.ArgumentParser(description="Inference for nodule segmentation and saving slices")
     parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
-    parser.add_argument("--xlsx-path", required=True, type=str, help="Path to the Excel file with the annotations")
     parser.add_argument("--output-dir", required=True, type=str, help="Path to save the output slices")
 
     # Model configuration
@@ -144,7 +143,7 @@ def main(args):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load the excel file with the annotations and remove nodules with <2 annotations
-    annotations = pd.read_excel(args.xlsx_path)
+    annotations = pd.read_excel(args.data_dir / "annotations.csv")
     nodule_counts = annotations.groupby(["PatientID", "NoduleID"]).size()
     valid_nodules = nodule_counts[nodule_counts >= 2].reset_index()
     annotations = pd.merge(annotations, valid_nodules, on=["PatientID", "NoduleID"], how="inner") 
