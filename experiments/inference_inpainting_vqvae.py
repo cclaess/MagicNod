@@ -143,7 +143,7 @@ def main(args):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load the excel file with the annotations and remove nodules with <2 annotations
-    annotations = pd.read_excel(args.data_dir / "annotations.csv")
+    annotations = pd.read_excel(Path(args.data_dir) / "annotations.csv")
     nodule_counts = annotations.groupby(["PatientID", "NoduleID"]).size()
     valid_nodules = nodule_counts[nodule_counts >= 2].reset_index()
     annotations = pd.merge(annotations, valid_nodules, on=["PatientID", "NoduleID"], how="inner") 
