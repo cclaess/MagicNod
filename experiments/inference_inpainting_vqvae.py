@@ -233,6 +233,8 @@ def main(args):
                         "BBoxX": (row["BBoxMinX"], row["BBoxMaxX"]),
                         "BBoxY": (row["BBoxMinY"], row["BBoxMaxY"]),
                     })
+                
+            print(nodules)
 
 
             for slice_idx, slice_data in enumerate(data):
@@ -248,6 +250,8 @@ def main(args):
                 nodules_mask = [m.unsqueeze(0).to(device) for m in nodules_mask]
 
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
+
+                    print(nodule_info)
 
                     # Match the nodule info with the bounding box
                     nodule_bbox = {
