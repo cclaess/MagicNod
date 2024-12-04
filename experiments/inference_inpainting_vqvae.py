@@ -347,13 +347,15 @@ def main(args):
                     combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.png"
                     grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
-                    Image.fromarray(image_array).save(save_dir / image_name)
-                    Image.fromarray(mask_array).save(save_dir / mask_name)
-                    Image.fromarray(reconstructed_image_array).save(save_dir / recon_name)
-                    Image.fromarray(combined_image_array).save(save_dir / combined_name)
+                    print(image_array.shape)
+                    # Image.fromarray(image_array).save(save_dir / image_name)
+                    # Image.fromarray(mask_array).save(save_dir / mask_name)
+                    # Image.fromarray(reconstructed_image_array).save(save_dir / recon_name)
+                    # Image.fromarray(combined_image_array).save(save_dir / combined_name)
 
                     # Save the grid image as PNG
                     grid_image_array = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                    print(grid_image_array.shape)
                     Image.fromarray(grid_image_array).save(save_dir / grid_name)
 
 
