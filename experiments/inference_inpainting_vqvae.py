@@ -189,13 +189,13 @@ def main(args):
         Orientationd(keys=["image", "mask"], axcodes="RAS"),
         Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
         ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
-        ToTensord(keys=["image", "mask"]),
         FilterSlicesByMaskFuncd(
             keys=["image", "mask"], 
             mask_key="mask", 
             mask_filter_func=lambda x: x.sum(dim=(0, 1, 2)) > 0,
             slice_dim=3,
         ),
+        ToTensord(keys=["image", "mask"]),
     ])
 
     # Initialize the model
