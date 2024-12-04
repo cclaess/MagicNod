@@ -273,12 +273,10 @@ def main(args):
                 # Send the data to the device
                 image = image.unsqueeze(0).to(device)
                 mask = mask.unsqueeze(0).to(device)
-                print("1", type(mask))
                 nodules_mask = [m.unsqueeze(0).to(device) for m in nodules_mask]
 
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
                     
-                    print("2", type(mask))
                     x, y, _ = map_pixel_to_original((*nodule_info[:2], 0), mask.affine.numpy(), mask.meta["original_affine"])
 
                     # Match the nodule info with the bounding box
@@ -322,16 +320,16 @@ def main(args):
                     )
 
                     # Remove redundant dimensions
-                    image = image.squeeze(0).cpu().numpy()
-                    mask = mask.squeeze(0).cpu().numpy()
-                    reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
-                    combined_image = combined_image.squeeze(0).cpu().numpy()
+                    image_array = image.squeeze(0).cpu().numpy()
+                    mask_array = mask.squeeze(0).cpu().numpy()
+                    reconstructed_image_array = reconstructed_image.squeeze(0).cpu().numpy()
+                    combined_image_array = combined_image.squeeze(0).cpu().numpy()
 
                     # Normalize images for saving
-                    image = image * 2000 - 1000  # Undo normalization
-                    mask = mask.astype(np.uint8)
-                    reconstructed_image = reconstructed_image * 2000 - 1000
-                    combined_image = combined_image * 2000 - 1000
+                    image_array = image_array * 2000 - 1000  # Undo normalization
+                    mask_array = mask_array.astype(np.uint8)
+                    reconstructed_image_array = reconstructed_image_array * 2000 - 1000
+                    combined_image_array = combined_image_array * 2000 - 1000
 
                     # Save the individual slices as tiff images
                     save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
@@ -343,14 +341,14 @@ def main(args):
                     combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.nii.gz"
                     grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
-                    sitk.WriteImage(sitk.GetImageFromArray(image), save_dir / image_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(mask), save_dir / mask_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(reconstructed_image), save_dir / recon_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(combined_image), save_dir / combined_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(image_array), save_dir / image_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(mask_array), save_dir / mask_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(reconstructed_image_array), save_dir / recon_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(combined_image_array), save_dir / combined_name)
 
                     # Save the grid image as PNG
-                    grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
-                    Image.fromarray(grid_image).save(save_dir / grid_name)
+                    grid_image_array = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                    Image.fromarray(grid_image_array).save(save_dir / grid_name)
 
 
 if __name__ == "__main__":
