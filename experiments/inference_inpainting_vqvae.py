@@ -329,7 +329,7 @@ def main(args):
                     combined_image_array = combined_image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
 
                     # Normalize images for saving
-                    image_array = (image_array * 255).astype(np.uint8)  # Undo normalization
+                    image_array = (image_array.clip(0., 1.) * 255).astype(np.uint8)  # Undo normalization
                     mask_array = (mask_array * 255).astype(np.uint8)
                     recon_image_array = (recon_image_array.clip(0., 1.) * 255).astype(np.uint8)
                     combined_image_array = (combined_image_array.clip(0., 1.) * 255).astype(np.uint8)
