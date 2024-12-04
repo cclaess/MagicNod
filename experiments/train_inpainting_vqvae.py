@@ -313,47 +313,46 @@ def main(args):
         # Training epoch
         for batch in train_data:
             
-            with accelerator.autocast():
-                images = batch["image"]
-                images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
+            images = batch["image"]
+            images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-                mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
-                masked_images = images.clone()  # deep-copy to avoid in-place operations
-                masked_images = masked_images * mask
+            mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
+            masked_images = images.clone()  # deep-copy to avoid in-place operations
+            masked_images = masked_images * mask
 
-                # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
-                mask = mask * -1 + 1
-                masked_images = torch.cat([masked_images, mask], dim=1)
+            # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
+            mask = mask * -1 + 1
+            masked_images = torch.cat([masked_images, mask], dim=1)
 
-                # Generator part
-                optimizer_g.zero_grad(set_to_none=True)
+            # Generator part
+            optimizer_g.zero_grad(set_to_none=True)
 
-                reconstruction, quantization_loss = model(masked_images)
-                logits_fake = discriminator(reconstruction.contiguous().float())[-1]
+            reconstruction, quantization_loss = model(masked_images)
+            logits_fake = discriminator(reconstruction.contiguous().float())[-1]
 
-                recons_loss = l1_loss(reconstruction.float(), images.float())
-                p_loss = perceptual_loss(reconstruction.float(), images.float())
-                generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
-                loss_g = recons_loss + quantization_loss + args.perceptual_weight * p_loss + args.adv_weight * generator_loss
+            recons_loss = l1_loss(reconstruction.float(), images.float())
+            p_loss = perceptual_loss(reconstruction.float(), images.float())
+            generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
+            loss_g = recons_loss + quantization_loss + args.perceptual_weight * p_loss + args.adv_weight * generator_loss
 
-                accelerator.backward(loss_g)
-                accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip the gradients
-                optimizer_g.step()
+            accelerator.backward(loss_g)
+            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip the gradients
+            optimizer_g.step()
 
-                # Discriminator part
-                optimizer_d.zero_grad(set_to_none=True)
+            # Discriminator part
+            optimizer_d.zero_grad(set_to_none=True)
 
-                logits_fake = discriminator(reconstruction.contiguous().detach())[-1]
-                loss_d_fake = adv_loss(logits_fake, target_is_real=False, for_discriminator=True)
-                logits_real = discriminator(images.contiguous().detach())[-1]
-                loss_d_real = adv_loss(logits_real, target_is_real=True, for_discriminator=True)
-                discriminator_loss = 0.5 * (loss_d_fake + loss_d_real)
+            logits_fake = discriminator(reconstruction.contiguous().detach())[-1]
+            loss_d_fake = adv_loss(logits_fake, target_is_real=False, for_discriminator=True)
+            logits_real = discriminator(images.contiguous().detach())[-1]
+            loss_d_real = adv_loss(logits_real, target_is_real=True, for_discriminator=True)
+            discriminator_loss = 0.5 * (loss_d_fake + loss_d_real)
 
-                loss_d = args.adv_weight * discriminator_loss
+            loss_d = args.adv_weight * discriminator_loss
 
-                accelerator.backward(loss_d)
-                accelerator.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)  # clip the gradients
-                optimizer_d.step()
+            accelerator.backward(loss_d)
+            accelerator.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)  # clip the gradients
+            optimizer_d.step()
 
             # Log the losses, learning rates and epoch
             logs = {
@@ -398,22 +397,21 @@ def main(args):
         with torch.no_grad():
             for step, batch in enumerate(val_data):
                 
-                with accelerator.autocast():
-                    images = batch["image"]
-                    images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
+                images = batch["image"]
+                images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-                    mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
-                    masked_images = images.clone()  # deep-copy to avoid in-place operations
-                    masked_images = masked_images * mask
+                mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
+                masked_images = images.clone()  # deep-copy to avoid in-place operations
+                masked_images = masked_images * mask
 
 
-                    # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
-                    mask = mask * -1 + 1
-                    masked_images = torch.cat([masked_images, mask], dim=1)
+                # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
+                mask = mask * -1 + 1
+                masked_images = torch.cat([masked_images, mask], dim=1)
 
-                    reconstruction, quantization_loss = model(images=masked_images)
+                reconstruction, quantization_loss = model(images=masked_images)
 
-                    recons_loss = l1_loss(reconstruction.float(), images.float())
+                recons_loss = l1_loss(reconstruction.float(), images.float())
 
                 # Get the first sample from the first batch for visualization
                 if step == 0 and accelerator.is_main_process:
