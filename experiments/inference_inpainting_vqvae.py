@@ -326,10 +326,10 @@ def main(args):
                     )
 
                     # Remove redundant dimensions
-                    image_array = image.squeeze(0).cpu().numpy()
-                    mask_array = mask.squeeze(0).cpu().numpy()
-                    reconstructed_image_array = reconstructed_image.squeeze(0).cpu().numpy()
-                    combined_image_array = combined_image.squeeze(0).cpu().numpy()
+                    image_array = image.squeeze(0).permute(2, 1, 0).cpu().numpy()
+                    mask_array = mask.squeeze(0).permute(2, 1, 0).cpu().numpy()
+                    reconstructed_image_array = reconstructed_image.squeeze(0).permute(2, 1, 0).cpu().numpy()
+                    combined_image_array = combined_image.squeeze(0).permute(2, 1, 0).cpu().numpy()
 
                     # Normalize images for saving
                     image_array = (image_array * 255).astype(np.uint8)  # Undo normalization
