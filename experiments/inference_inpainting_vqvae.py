@@ -134,6 +134,32 @@ def create_circular_average_kernel(size, radius):
     return kernel
 
 
+def map_pixel_to_original(p_new, affine_new, affine_orig):
+    """
+    Map a pixel coordinate from the resampled space back to the original space,
+    rounding to the nearest pixel.
+
+    Args:
+        p_new (tuple): Pixel coordinate in the resampled space (x, y, z).
+        affine_new (numpy.ndarray): New affine matrix after resampling (4x4).
+        affine_orig (numpy.ndarray): Original affine matrix before resampling (4x4).
+
+    Returns:
+        numpy.ndarray: Corresponding coordinate in the original space, rounded to the nearest pixel.
+    """
+    # Convert the pixel coordinate to homogeneous form
+    p_new_h = np.array([*p_new, 1])  # (x, y, z, 1)
+
+    # Compute the world coordinate in the new space
+    p_world = affine_new @ p_new_h
+
+    # Transform the world coordinate back to the original pixel space
+    p_orig_h = np.linalg.inv(affine_orig) @ p_world
+
+    # Return only the first three coordinates (x, y, z), rounded to the nearest pixel
+    return np.round(p_orig_h[:3]).astype(int)
+
+
 def main(args):
     # Set seed for reproducibility
     set_determinism(args.seed)
@@ -252,7 +278,9 @@ def main(args):
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
 
                     print(nodule_info)
+                    x, y, _ = map_pixel_to_original((nodule_info[1], nodule_info[0], 0), mask.affine.numpy(), mask.meta["original_affine"])
 
+                    print(x, y)
                     # Match the nodule info with the bounding box
                     nodule_bbox = {
                         "CenterX": nodule_info[1],
