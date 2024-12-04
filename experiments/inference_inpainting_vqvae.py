@@ -273,12 +273,12 @@ def main(args):
                 # Send the data to the device
                 image = image.unsqueeze(0).to(device)
                 mask = mask.unsqueeze(0).to(device)
-                print(type(mask))
+                print("1", type(mask))
                 nodules_mask = [m.unsqueeze(0).to(device) for m in nodules_mask]
 
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
                     
-                    print(type(mask))
+                    print("2", type(mask))
                     x, y, _ = map_pixel_to_original((*nodule_info[:2], 0), mask.affine.numpy(), mask.meta["original_affine"])
 
                     # Match the nodule info with the bounding box
