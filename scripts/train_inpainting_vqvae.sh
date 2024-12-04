@@ -3,7 +3,7 @@ cd ~/Projects/MagicNod | exit 1
 mkdir -p $WANDB_DIR
 wandb login
 
-accelerate launch --multi-gpu \
+accelerate launch --multi-gpu --mixed-precision "fp16" \
     experiments/train_inpainting_vqvae.py \
     --experiment-name "test_run_lidc_7" \
     --data-dir "./data/LIDC-IDRI" \
