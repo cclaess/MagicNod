@@ -313,7 +313,13 @@ def main(args):
 
                     # Make grid to save later
                     grid_image = make_grid(
-                        torch.cat([image, masked_image, reconstructed_image, smooth_mask, combined_image], dim=0), 
+                        torch.cat([
+                            image.permute(0, 1, 3, 2), 
+                            masked_image.permute(0, 1, 3, 2),
+                            reconstructed_image.permute(0, 1, 3, 2),
+                            smooth_mask.permute(0, 1, 3, 2),
+                            combined_image.permute(0, 1, 3, 2)
+                        ], dim=0), 
                         nrow=5,
                         normalize=True,
                         value_range=(0, 1),
@@ -326,25 +332,25 @@ def main(args):
                     combined_image_array = combined_image.squeeze(0).cpu().numpy()
 
                     # Normalize images for saving
-                    image_array = image_array * 2000 - 1000  # Undo normalization
-                    mask_array = mask_array.astype(np.uint8)
-                    reconstructed_image_array = reconstructed_image_array * 2000 - 1000
-                    combined_image_array = combined_image_array * 2000 - 1000
+                    image_array = (image_array * 255).astype(np.uint8)  # Undo normalization
+                    mask_array = (mask_array * 255).astype(np.uint8)
+                    reconstructed_image_array = (reconstructed_image_array.clip(0., 1.) * 255).astype(np.uint8)
+                    combined_image_array = (combined_image_array.clip(0., 1.) * 255).astype(np.uint8)
 
                     # Save the individual slices as tiff images
                     save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
                     save_dir.mkdir(parents=True, exist_ok=True)
 
-                    image_name = f"image_slice={slice_idx:04}_nod={nod_id}.nii.gz"
-                    mask_name = f"mask_slice=_{slice_idx:04}_nod={nod_id}.nii.gz"
-                    recon_name = f"recon_slice={slice_idx:04}_nod={nod_id}.nii.gz"
-                    combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.nii.gz"
+                    image_name = f"image_slice={slice_idx:04}_nod={nod_id}.png"
+                    mask_name = f"mask_slice=_{slice_idx:04}_nod={nod_id}.png"
+                    recon_name = f"recon_slice={slice_idx:04}_nod={nod_id}.png"
+                    combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.png"
                     grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
-                    sitk.WriteImage(sitk.GetImageFromArray(image_array), save_dir / image_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(mask_array), save_dir / mask_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(reconstructed_image_array), save_dir / recon_name)
-                    sitk.WriteImage(sitk.GetImageFromArray(combined_image_array), save_dir / combined_name)
+                    Image.fromarray(image_array).save(save_dir / image_name)
+                    Image.fromarray(mask_array).save(save_dir / mask_name)
+                    Image.fromarray(reconstructed_image_array).save(save_dir / recon_name)
+                    Image.fromarray(combined_image_array).save(save_dir / combined_name)
 
                     # Save the grid image as PNG
                     grid_image_array = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
