@@ -311,47 +311,42 @@ def main(args):
                     smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
                     # Cut and paste the reconstructed image within the mask region back to the original image
-                    cut_paste_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
+                    combined_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
 
                     # Make grid to save later
                     grid_image = make_grid(
-                        torch.cat([image, masked_image, reconstructed_image, smooth_mask, cut_paste_image], dim=0), 
+                        torch.cat([image, masked_image, reconstructed_image, smooth_mask, combined_image], dim=0), 
                         nrow=5,
                         normalize=True,
                         value_range=(0, 1),
                     )
 
-                    # Get the original image path from metatensor
+                    # Remove redundant dimensions
                     image = image.squeeze(0).cpu().numpy()
                     mask = mask.squeeze(0).cpu().numpy()
                     reconstructed_image = reconstructed_image.squeeze(0).cpu().numpy()
-                    cut_paste_image = cut_paste_image.squeeze(0).cpu().numpy()
+                    combined_image = combined_image.squeeze(0).cpu().numpy()
 
                     # Normalize images for saving
                     image = image * 2000 - 1000  # Undo normalization
                     mask = mask.astype(np.uint8)
                     reconstructed_image = reconstructed_image * 2000 - 1000
-                    cut_paste_image = cut_paste_image * 2000 - 1000
+                    combined_image = combined_image * 2000 - 1000
 
                     # Save the individual slices as tiff images
                     save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
                     save_dir.mkdir(parents=True, exist_ok=True)
 
-                    image_name = str(orig_path.name).replace(
-                        ".nii.gz", f"_slice={slice_idx:04}_nod={nod_id}.nii.gz")
-                    mask_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"mask_slice=_{slice_idx:04}_nod={nod_id}.nii.gz")
-                    recon_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"recon_slice={slice_idx:04}_nod={nod_id}.nii.gz")
-                    combined_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"combined_slice={slice_idx:04}_nod={nod_id}.nii.gz")
-                    grid_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"grid_slice={slice_idx:04}_nod={nod_id}.png")
+                    image_name = f"image_slice={slice_idx:04}_nod={nod_id}.nii.gz"
+                    mask_name = f"mask_slice=_{slice_idx:04}_nod={nod_id}.nii.gz"
+                    recon_name = f"recon_slice={slice_idx:04}_nod={nod_id}.nii.gz"
+                    combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.nii.gz"
+                    grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
-                    sitk.WriteImage(image, str(save_dir / image_name))
-                    sitk.WriteImage(mask, str(save_dir / mask_name))
-                    sitk.WriteImage(reconstructed_image, str(save_dir / recon_name))
-                    sitk.WriteImage(cut_paste_image, str(save_dir / combined_name))
+                    sitk.WriteImage(sitk.GetImageFromArray(image), save_dir / image_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(mask), save_dir / mask_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(reconstructed_image), save_dir / recon_name)
+                    sitk.WriteImage(sitk.GetImageFromArray(combined_image), save_dir / combined_name)
 
                     # Save the grid image as PNG
                     grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
