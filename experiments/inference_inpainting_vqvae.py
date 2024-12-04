@@ -259,9 +259,6 @@ def main(args):
                         "BBoxX": (row["BBoxMinX"], row["BBoxMaxX"]),
                         "BBoxY": (row["BBoxMinY"], row["BBoxMaxY"]),
                     })
-                
-            print(nodules)
-
 
             for slice_idx, slice_data in enumerate(data):
                 image = slice_data["image"]
@@ -295,7 +292,7 @@ def main(args):
                     input_image = torch.cat([masked_image, inversed_mask], dim=1)
 
                     # Generate reconstructed image
-                    reconstructed_image, _ = model(input_image)
+                    recon_image, _ = model(input_image)
 
                     # Cut and paste the reconstructed image within the mask region back to the original image
                     # Use a gaussian weighting around the edges to blend the images
@@ -309,16 +306,16 @@ def main(args):
                     smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
                     # Cut and paste the reconstructed image within the mask region back to the original image
-                    combined_image = image * (smooth_mask * -1 + 1) + reconstructed_image * smooth_mask
+                    combined_image = image * (smooth_mask * -1 + 1) + recon_image * smooth_mask
 
                     # Make grid to save later
                     grid_image = make_grid(
                         torch.cat([
-                            image.permute(0, 1, 3, 2), 
-                            masked_image.permute(0, 1, 3, 2),
-                            reconstructed_image.permute(0, 1, 3, 2),
-                            smooth_mask.permute(0, 1, 3, 2),
-                            combined_image.permute(0, 1, 3, 2)
+                            image.permute(0, 1, 3, 2).flip(dims=(2, 3)), 
+                            masked_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                            recon_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                            smooth_mask.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                            combined_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
                         ], dim=0), 
                         nrow=5,
                         normalize=True,
@@ -326,15 +323,15 @@ def main(args):
                     )
 
                     # Remove redundant dimensions
-                    image_array = image.squeeze(0).permute(2, 1, 0).cpu().numpy().repeat(3, axis=-1)
-                    mask_array = mask.squeeze(0).permute(2, 1, 0).cpu().numpy().repeat(3, axis=-1)
-                    reconstructed_image_array = reconstructed_image.squeeze(0).permute(2, 1, 0).cpu().numpy().repeat(3, axis=-1)
-                    combined_image_array = combined_image.squeeze(0).permute(2, 1, 0).cpu().numpy().repeat(3, axis=-1)
+                    image_array = image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
+                    mask_array = mask.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
+                    recon_image_array = recon_image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
+                    combined_image_array = combined_image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
 
                     # Normalize images for saving
                     image_array = (image_array * 255).astype(np.uint8)  # Undo normalization
                     mask_array = (mask_array * 255).astype(np.uint8)
-                    reconstructed_image_array = (reconstructed_image_array.clip(0., 1.) * 255).astype(np.uint8)
+                    recon_image_array = (recon_image_array.clip(0., 1.) * 255).astype(np.uint8)
                     combined_image_array = (combined_image_array.clip(0., 1.) * 255).astype(np.uint8)
 
                     # Save the individual slices as tiff images
@@ -347,15 +344,13 @@ def main(args):
                     combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.png"
                     grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
-                    print(image_array.shape)
-                    # Image.fromarray(image_array).save(save_dir / image_name)
-                    # Image.fromarray(mask_array).save(save_dir / mask_name)
-                    # Image.fromarray(reconstructed_image_array).save(save_dir / recon_name)
-                    # Image.fromarray(combined_image_array).save(save_dir / combined_name)
+                    Image.fromarray(image_array).save(save_dir / image_name)
+                    Image.fromarray(mask_array).save(save_dir / mask_name)
+                    Image.fromarray(recon_image_array).save(save_dir / recon_name)
+                    Image.fromarray(combined_image_array).save(save_dir / combined_name)
 
                     # Save the grid image as PNG
                     grid_image_array = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
-                    print(grid_image_array.shape)
                     Image.fromarray(grid_image_array).save(save_dir / grid_name)
 
 
