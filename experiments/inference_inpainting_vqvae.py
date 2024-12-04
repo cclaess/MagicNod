@@ -348,10 +348,10 @@ def main(args):
                     grid_name = str(orig_path.name).replace(
                         "image.nii.gz", f"grid_slice={slice_idx:04}_nod={nod_id}.png")
 
-                    sitk.WriteImage(image, save_dir / image_name)
-                    sitk.WriteImage(mask, save_dir / mask_name)
-                    sitk.WriteImage(reconstructed_image, save_dir / recon_name)
-                    sitk.WriteImage(cut_paste_image, save_dir / combined_name)
+                    sitk.WriteImage(image, str(save_dir / image_name))
+                    sitk.WriteImage(mask, str(save_dir / mask_name))
+                    sitk.WriteImage(reconstructed_image, str(save_dir / recon_name))
+                    sitk.WriteImage(cut_paste_image, str(save_dir / combined_name))
 
                     # Save the grid image as PNG
                     grid_image = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
