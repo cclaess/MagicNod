@@ -186,10 +186,10 @@ def main(args):
     train_transforms = Compose([
         LoadImaged(keys=["image", "mask"]),
         EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
-        ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
+        ScaleIntensityRanged(keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0),  # Lung window
         Orientationd(keys=["image", "mask"], axcodes="RAS"),
-        Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
+        Spacingd(keys=["image", "mask"], pixdim=(0.688, 0.688, 2.0), mode=("bilinear", "nearest")),  # Mean spacing, median slice thickness
+        ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, 128)),
         ToTensord(keys=["image", "mask"]),
         FilterSlicesByMaskFuncd(
             keys=["image", "mask"],
@@ -316,7 +316,7 @@ def main(args):
             images = batch["image"]
             images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-            mask = generate_random_circular_masks(images.size(0), 384).to(accelerator.device)
+            mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
             masked_images = images.clone()  # deep-copy to avoid in-place operations
             masked_images = masked_images * mask
 
@@ -400,7 +400,7 @@ def main(args):
                 images = batch["image"]
                 images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-                mask = generate_random_circular_masks(images.size(0), 384).to(accelerator.device)
+                mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
                 masked_images = masked_images * mask
 
