@@ -278,21 +278,17 @@ def main(args):
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
 
                     print(nodule_info)
-                    x, y, _ = map_pixel_to_original((nodule_info[1], nodule_info[0], 0), mask.affine.numpy(), mask.meta["original_affine"])
+                    x, y, _ = map_pixel_to_original((*nodule_info[:2], 0), mask.affine.numpy(), mask.meta["original_affine"])
 
                     print(x, y)
                     # Match the nodule info with the bounding box
-                    nodule_bbox = {
-                        "CenterX": nodule_info[1],
-                        "CenterY": nodule_info[0],
-                        "Radius": nodule_info[2],
-                    }
+                    nod_id = None
                     for nodule in nodules:
-                        if nodule["BBoxX"][0] <= nodule_bbox["CenterX"] <= nodule["BBoxX"][1] and \
-                            nodule["BBoxY"][0] <= nodule_bbox["CenterY"] <= nodule["BBoxY"][1]:
-                            nodule_bbox["NoduleID"] = nodule["NoduleID"]
+                        if nodule["BBoxX"][0] <= x <= nodule["BBoxX"][1] and \
+                            nodule["BBoxY"][0] <= y <= nodule["BBoxY"][1]:
+                            nod_id = nodule["NoduleID"]
                             break
-                    assert "NoduleID" in nodule_bbox, "Nodule not found in the annotations"
+                    assert nod_id, "Nodule not found in the annotations"
 
                     # Combine image and mask as input
                     masked_image = image.clone()
@@ -342,15 +338,15 @@ def main(args):
                     save_dir.mkdir(parents=True, exist_ok=True)
 
                     image_name = str(orig_path.name).replace(
-                        ".nii.gz", f"_slice={slice_idx:04}_nod={nodule_bbox['NoduleID']}.nii.gz")
+                        ".nii.gz", f"_slice={slice_idx:04}_nod={nod_id}.nii.gz")
                     mask_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"mask_slice=_{slice_idx:04}_nod={nodule_bbox['NoduleID']}.nii.gz")
+                        "image.nii.gz", f"mask_slice=_{slice_idx:04}_nod={nod_id}.nii.gz")
                     recon_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"recon_slice={slice_idx:04}_nod={nodule_bbox['NoduleID']}.nii.gz")
+                        "image.nii.gz", f"recon_slice={slice_idx:04}_nod={nod_id}.nii.gz")
                     combined_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"combined_slice={slice_idx:04}_nod={nodule_bbox['NoduleID']}.nii.gz")
+                        "image.nii.gz", f"combined_slice={slice_idx:04}_nod={nod_id}.nii.gz")
                     grid_name = str(orig_path.name).replace(
-                        "image.nii.gz", f"grid_slice={slice_idx:04}_nod={nodule_bbox['NoduleID']}.png")
+                        "image.nii.gz", f"grid_slice={slice_idx:04}_nod={nod_id}.png")
 
                     sitk.WriteImage(image, save_dir / image_name)
                     sitk.WriteImage(mask, save_dir / mask_name)
