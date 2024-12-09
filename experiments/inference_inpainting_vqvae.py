@@ -427,6 +427,14 @@ def main(args):
                         .numpy()
                         .repeat(3, axis=-1)
                     )
+                    round_mask_array = (
+                        inversed_mask.squeeze(0)
+                        .permute(2, 1, 0)
+                        .flip(dims=(0, 1))
+                        .cpu()
+                        .numpy()
+                        .repeat(3, axis=-1)
+                    )
                     recon_image_array = (
                         recon_image.squeeze(0)
                         .permute(2, 1, 0)
@@ -449,12 +457,17 @@ def main(args):
                         np.uint8
                     )
                     mask_array = (mask_array * 255).astype(np.uint8)
+                    round_mask_array = (round_mask_array * 255).astype(np.uint8)
                     recon_image_array = (
                         (recon_image_array.clip(-1.0, 1.0) + 1) * 127.5
                     ).astype(np.uint8)
                     combined_image_array = (
                         (combined_image_array.clip(-1.0, 1.0) + 1) * 127.5
                     ).astype(np.uint8)
+
+                    # Put combined image with mask in the blue channel
+                    combined_mask_image_array = combined_image_array.copy()
+                    combined_mask_image_array[..., 2] = round_mask_array[..., 0]
 
                     # Save the individual slices as tiff images
                     save_dir = (
@@ -466,12 +479,16 @@ def main(args):
                     mask_name = f"mask_slice=_{slice_idx:04}_nod={nod_id}.png"
                     recon_name = f"recon_slice={slice_idx:04}_nod={nod_id}.png"
                     combined_name = f"combined_slice={slice_idx:04}_nod={nod_id}.png"
+                    combined_mask_name = f"combined_mask_slice={slice_idx:04}_nod={nod_id}.png"
                     grid_name = f"grid_slice={slice_idx:04}_nod={nod_id}.png"
 
                     Image.fromarray(image_array).save(save_dir / image_name)
                     Image.fromarray(mask_array).save(save_dir / mask_name)
                     Image.fromarray(recon_image_array).save(save_dir / recon_name)
                     Image.fromarray(combined_image_array).save(save_dir / combined_name)
+                    Image.fromarray(combined_mask_image_array).save(
+                        save_dir / combined_mask_name
+                    )
 
                     # Save the grid image as PNG
                     grid_image_array = (
