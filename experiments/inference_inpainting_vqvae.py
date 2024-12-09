@@ -6,7 +6,6 @@ from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
-import SimpleITK as sitk
 from monai.transforms import (
     Compose,
     LoadImaged,
@@ -34,29 +33,80 @@ def get_args_parser():
     Returns:
     - argparse.ArgumentParser: Argument parser for the script.
     """
-    parser = argparse.ArgumentParser(description="Inference for nodule segmentation and saving slices")
-    parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
-    parser.add_argument("--output-dir", required=True, type=str, help="Path to save the output slices")
+    parser = argparse.ArgumentParser(
+        description="Inference for nodule segmentation and saving slices"
+    )
+    parser.add_argument(
+        "--data-dir", required=True, type=str, help="Path to the data directory"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, type=str, help="Path to save the output slices"
+    )
 
     # Model configuration
-    parser.add_argument("--model-path", required=True, type=str, help="Path to the trained model")
-    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the model")
-    parser.add_argument("--num-res-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the residual blocks")
-    parser.add_argument("--num-res-layers", type=int, default=3, help="Number of residual layers in the model")
-    parser.add_argument("--downsample-parameters", type=int, nargs=4, default=(2, 4, 1, 1), help="Parameters for the downsampling layers")
-    parser.add_argument("--upsample-parameters", type=int, nargs=5, default=(2, 4, 1, 1, 0), help="Parameters for the upsampling layers")
-    parser.add_argument("--num-embeddings", type=int, default=256, help="Number of embeddings in the VQ-VAE")
-    parser.add_argument("--embedding-dim", type=int, default=632, help="Dimension of the embeddings in the VQ-VAE")
+    parser.add_argument(
+        "--model-path", required=True, type=str, help="Path to the trained model"
+    )
+    parser.add_argument(
+        "--num-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the model",
+    )
+    parser.add_argument(
+        "--num-res-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the residual blocks",
+    )
+    parser.add_argument(
+        "--num-res-layers",
+        type=int,
+        default=3,
+        help="Number of residual layers in the model",
+    )
+    parser.add_argument(
+        "--downsample-parameters",
+        type=int,
+        nargs=4,
+        default=(2, 4, 1, 1),
+        help="Parameters for the downsampling layers",
+    )
+    parser.add_argument(
+        "--upsample-parameters",
+        type=int,
+        nargs=5,
+        default=(2, 4, 1, 1, 0),
+        help="Parameters for the upsampling layers",
+    )
+    parser.add_argument(
+        "--num-embeddings",
+        type=int,
+        default=256,
+        help="Number of embeddings in the VQ-VAE",
+    )
+    parser.add_argument(
+        "--embedding-dim",
+        type=int,
+        default=632,
+        help="Dimension of the embeddings in the VQ-VAE",
+    )
 
-    parser.add_argument("--batch-size", type=int, default=8, help="Batch size for inference")
-    parser.add_argument("--num-workers", type=int, default=4, help="Number of workers for data loading")
+    parser.add_argument(
+        "--batch-size", type=int, default=8, help="Batch size for inference"
+    )
+    parser.add_argument(
+        "--num-workers", type=int, default=4, help="Number of workers for data loading"
+    )
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
     return parser
 
 
 def mask_with_circle(binary_mask):
     """
-    Replace each connected component in the binary mask with a circle of minimal size that covers the whole 
+    Replace each connected component in the binary mask with a circle of minimal size that covers the whole
     component.
 
     Args:
@@ -90,18 +140,21 @@ def mask_with_circle(binary_mask):
 
             # Create a circle mask
             result_mask_np = np.ones_like(binary_mask_np)
-            y, x = np.ogrid[:binary_mask_np.shape[0], :binary_mask_np.shape[1]]
-            circle = (x - center_col) ** 2 + (y - center_row) ** 2 <= (radius + 3) ** 2  # Add a margin of 3 pixels
+            y, x = np.ogrid[: binary_mask_np.shape[0], : binary_mask_np.shape[1]]
+            circle = (x - center_col) ** 2 + (y - center_row) ** 2 <= (
+                radius + 3
+            ) ** 2  # Add a margin of 3 pixels
             result_mask_np = np.logical_not(np.logical_and(result_mask_np, circle))
             nodules_mask.append(result_mask_np)
 
     # Convert the result back to a torch tensor with same dtype and device as the input
     # Add the channel dimension back
-    nodules_mask = [torch.tensor(
-            mask, 
-            dtype=binary_mask.dtype, 
-            device=binary_mask.device
-        ).unsqueeze(0) for mask in nodules_mask]
+    nodules_mask = [
+        torch.tensor(
+            mask, dtype=binary_mask.dtype, device=binary_mask.device
+        ).unsqueeze(0)
+        for mask in nodules_mask
+    ]
 
     return nodules_mask, nodules_info
 
@@ -118,7 +171,7 @@ def create_circular_average_kernel(size, radius):
         torch.Tensor: A 2D kernel with the circle averaging mask.
     """
     # Create a grid of coordinates centered at the middle
-    y, x = torch.meshgrid(torch.arange(size), torch.arange(size), indexing='ij')
+    y, x = torch.meshgrid(torch.arange(size), torch.arange(size), indexing="ij")
     center = (size - 1) / 2
     distance = torch.sqrt((x - center) ** 2 + (y - center) ** 2)
 
@@ -172,31 +225,49 @@ def main(args):
     annotations = pd.read_csv(Path(args.data_dir) / "annotations.csv")
     nodule_counts = annotations.groupby(["PatientID", "NoduleID"]).size()
     valid_nodules = nodule_counts[nodule_counts >= 2].reset_index()
-    annotations = pd.merge(annotations, valid_nodules, on=["PatientID", "NoduleID"], how="inner") 
+    annotations = pd.merge(
+        annotations, valid_nodules, on=["PatientID", "NoduleID"], how="inner"
+    )
 
     # Load data paths
-    train_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
-        os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True)]
-    valid_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
-        os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True)]
+    train_paths = [
+        {"image": p, "mask": p.replace("image", "mask")}
+        for p in glob(
+            os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True
+        )
+    ]
+    valid_paths = [
+        {"image": p, "mask": p.replace("image", "mask")}
+        for p in glob(
+            os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True
+        )
+    ]
     paths = train_paths + valid_paths
 
     # Define the transforms
-    transforms = Compose([
-        LoadImaged(keys=["image", "mask"]),
-        EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
-        ScaleIntensityRanged(keys=["image"], a_min=-1000, a_max=1000, b_min=0.0, b_max=1.0),
-        Orientationd(keys=["image", "mask"], axcodes="RAS"),
-        Spacingd(keys=["image", "mask"], pixdim=(1.0, 1.0, 2.0), mode=("bilinear", "nearest")),
-        ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(384, 384, 128)),
-        FilterSlicesByMaskFuncd(
-            keys=["image", "mask"], 
-            mask_key="mask", 
-            mask_filter_func=lambda x: x.sum(dim=(0, 1, 2)) > 0,
-            slice_dim=3,
-        ),
-        ToTensord(keys=["image", "mask"]),
-    ])
+    transforms = Compose(
+        [
+            LoadImaged(keys=["image", "mask"]),
+            EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+            ScaleIntensityRanged(
+                keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0
+            ),
+            Orientationd(keys=["image", "mask"], axcodes="RAS"),
+            Spacingd(
+                keys=["image", "mask"],
+                pixdim=(0.688, 0.688, 2.0),
+                mode=("bilinear", "nearest"),
+            ),
+            ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, -1)),
+            FilterSlicesByMaskFuncd(
+                keys=["image", "mask"],
+                mask_key="mask",
+                mask_filter_func=lambda x: x.sum(dim=(0, 1, 2)) > 8,
+                slice_dim=3,
+            ),
+            ToTensord(keys=["image", "mask"]),
+        ]
+    )
 
     # Initialize the model
     model = VQVAE(
@@ -221,7 +292,7 @@ def main(args):
     # Loop over the data
     with torch.no_grad():
         for path in tqdm(paths, desc="Processing batches"):
-            
+
             # Load the data
             data = transforms(path)
 
@@ -237,7 +308,9 @@ def main(args):
 
             # Get the nodule annotations from the subject
             subject_annotations = annotations[annotations["PatientID"] == subject_id]
-            assert len(subject_annotations) > 0, f"No annotations found for subject {subject_id}"
+            assert (
+                len(subject_annotations) > 0
+            ), f"No annotations found for subject {subject_id}"
 
             # Get a list of the nodules with their maximum xy bounding box
             nodules = []
@@ -246,19 +319,21 @@ def main(args):
                 if row["NoduleID"] in [n["NoduleID"] for n in nodules]:
                     idx = [n["NoduleID"] for n in nodules].index(row["NoduleID"])
                     nodules[idx]["BBoxX"] = (
-                        min(nodules[idx]["BBoxX"][0], row["BBoxMinX"]), 
-                        max(nodules[idx]["BBoxX"][1], row["BBoxMaxX"])
+                        min(nodules[idx]["BBoxX"][0], row["BBoxMinX"]),
+                        max(nodules[idx]["BBoxX"][1], row["BBoxMaxX"]),
                     )
                     nodules[idx]["BBoxY"] = (
-                        min(nodules[idx]["BBoxY"][0], row["BBoxMinY"]), 
-                        max(nodules[idx]["BBoxY"][1], row["BBoxMaxY"])
+                        min(nodules[idx]["BBoxY"][0], row["BBoxMinY"]),
+                        max(nodules[idx]["BBoxY"][1], row["BBoxMaxY"]),
                     )
                 else:
-                    nodules.append({
-                        "NoduleID": row["NoduleID"],
-                        "BBoxX": (row["BBoxMinX"], row["BBoxMaxX"]),
-                        "BBoxY": (row["BBoxMinY"], row["BBoxMaxY"]),
-                    })
+                    nodules.append(
+                        {
+                            "NoduleID": row["NoduleID"],
+                            "BBoxX": (row["BBoxMinX"], row["BBoxMaxX"]),
+                            "BBoxY": (row["BBoxMinY"], row["BBoxMaxY"]),
+                        }
+                    )
 
             for slice_idx, slice_data in enumerate(data):
                 image = slice_data["image"]
@@ -273,14 +348,20 @@ def main(args):
                 nodules_mask = [m.unsqueeze(0).to(device) for m in nodules_mask]
 
                 for nodule_info, nodule_mask in zip(nodules_info, nodules_mask):
-                    
-                    x, y, _ = map_pixel_to_original((*nodule_info[:2], 0), mask.affine.numpy(), mask.meta["original_affine"])
+
+                    x, y, _ = map_pixel_to_original(
+                        (*nodule_info[:2], 0),
+                        mask.affine.numpy(),
+                        mask.meta["original_affine"],
+                    )
 
                     # Match the nodule info with the bounding box
                     nod_id = None
                     for nodule in nodules:
-                        if nodule["BBoxX"][0] <= x <= nodule["BBoxX"][1] and \
-                            nodule["BBoxY"][0] <= y <= nodule["BBoxY"][1]:
+                        if (
+                            nodule["BBoxX"][0] <= x <= nodule["BBoxX"][1]
+                            and nodule["BBoxY"][0] <= y <= nodule["BBoxY"][1]
+                        ):
                             nod_id = nodule["NoduleID"]
                             break
                     assert nod_id, "Nodule not found in the annotations"
@@ -296,46 +377,89 @@ def main(args):
 
                     # Cut and paste the reconstructed image within the mask region back to the original image
                     # Use a gaussian weighting around the edges to blend the images
-                    
+
                     # Get bounding box of the mask
                     smooth_mask = torch.zeros_like(mask)
                     smooth_mask = inversed_mask.clone()
 
                     # Apply convolutional filter to mask to create a smooth transition
                     kernel = create_circular_average_kernel(7, 3).to(device)
-                    smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
+                    smooth_mask = torch.nn.functional.conv2d(
+                        smooth_mask, kernel, padding=3
+                    )
 
                     # Cut and paste the reconstructed image within the mask region back to the original image
-                    combined_image = image * (smooth_mask * -1 + 1) + recon_image * smooth_mask
+                    combined_image = (
+                        image * (smooth_mask * -1 + 1) + recon_image * smooth_mask
+                    )
 
                     # Make grid to save later
                     grid_image = make_grid(
-                        torch.cat([
-                            image.permute(0, 1, 3, 2).flip(dims=(2, 3)), 
-                            masked_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
-                            recon_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
-                            smooth_mask.permute(0, 1, 3, 2).flip(dims=(2, 3)),
-                            combined_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
-                        ], dim=0), 
+                        torch.cat(
+                            [
+                                image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                                masked_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                                recon_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                                smooth_mask.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                                combined_image.permute(0, 1, 3, 2).flip(dims=(2, 3)),
+                            ],
+                            dim=0,
+                        ),
                         nrow=5,
                         normalize=True,
-                        value_range=(0, 1),
+                        value_range=(-1, 1),
                     )
 
                     # Remove redundant dimensions
-                    image_array = image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
-                    mask_array = mask.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
-                    recon_image_array = recon_image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
-                    combined_image_array = combined_image.squeeze(0).permute(2, 1, 0).flip(dims=(0, 1)).cpu().numpy().repeat(3, axis=-1)
+                    image_array = (
+                        image.squeeze(0)
+                        .permute(2, 1, 0)
+                        .flip(dims=(0, 1))
+                        .cpu()
+                        .numpy()
+                        .repeat(3, axis=-1)
+                    )
+                    mask_array = (
+                        mask.squeeze(0)
+                        .permute(2, 1, 0)
+                        .flip(dims=(0, 1))
+                        .cpu()
+                        .numpy()
+                        .repeat(3, axis=-1)
+                    )
+                    recon_image_array = (
+                        recon_image.squeeze(0)
+                        .permute(2, 1, 0)
+                        .flip(dims=(0, 1))
+                        .cpu()
+                        .numpy()
+                        .repeat(3, axis=-1)
+                    )
+                    combined_image_array = (
+                        combined_image.squeeze(0)
+                        .permute(2, 1, 0)
+                        .flip(dims=(0, 1))
+                        .cpu()
+                        .numpy()
+                        .repeat(3, axis=-1)
+                    )
 
-                    # Normalize images for saving
-                    image_array = (image_array.clip(0., 1.) * 255).astype(np.uint8)  # Undo normalization
+                    # Undo normalization for saving
+                    image_array = ((image_array.clip(-1.0, 1.0) + 1) * 127.5).astype(
+                        np.uint8
+                    )
                     mask_array = (mask_array * 255).astype(np.uint8)
-                    recon_image_array = (recon_image_array.clip(0., 1.) * 255).astype(np.uint8)
-                    combined_image_array = (combined_image_array.clip(0., 1.) * 255).astype(np.uint8)
+                    recon_image_array = (
+                        (recon_image_array.clip(-1.0, 1.0) + 1) * 127.5
+                    ).astype(np.uint8)
+                    combined_image_array = (
+                        (combined_image_array.clip(-1.0, 1.0) + 1) * 127.5
+                    ).astype(np.uint8)
 
                     # Save the individual slices as tiff images
-                    save_dir = output_dir / Path(orig_path).relative_to(args.data_dir).parent
+                    save_dir = (
+                        output_dir / Path(orig_path).relative_to(args.data_dir).parent
+                    )
                     save_dir.mkdir(parents=True, exist_ok=True)
 
                     image_name = f"image_slice={slice_idx:04}_nod={nod_id}.png"
@@ -350,7 +474,9 @@ def main(args):
                     Image.fromarray(combined_image_array).save(save_dir / combined_name)
 
                     # Save the grid image as PNG
-                    grid_image_array = grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                    grid_image_array = (
+                        grid_image.permute(1, 2, 0).mul(255).byte().cpu().numpy()
+                    )
                     Image.fromarray(grid_image_array).save(save_dir / grid_name)
 
 

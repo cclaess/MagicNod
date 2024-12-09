@@ -30,9 +30,13 @@ from magicnod.transforms import FilterSlicesByMaskFuncd
 
 # Monkey-patch the lpips `normalize_tensor` function to avoid nan values in sqrt
 import lpips
+
+
 def normalize_tensor(in_feat, eps=1e-10):
     norm_factor = torch.sqrt(torch.sum(in_feat**2, dim=1, keepdim=True) + eps)
     return in_feat / (norm_factor + eps)
+
+
 lpips.normalize_tensor = normalize_tensor
 
 
@@ -43,32 +47,94 @@ def get_args_parser():
     Returns:
     - argparse.ArgumentParser: Argument parser for the script.
     """
-    parser = argparse.ArgumentParser(description="Train UNet model for inpainting of axial CT slices")
-    
+    parser = argparse.ArgumentParser(
+        description="Train UNet model for inpainting of axial CT slices"
+    )
+
     # Experiment and data configuration
-    parser.add_argument("--experiment-name", required=True, type=str, help="Name of the experiment")
-    parser.add_argument("--data-dir", required=True, type=str, help="Path to the data directory")
+    parser.add_argument(
+        "--experiment-name", required=True, type=str, help="Name of the experiment"
+    )
+    parser.add_argument(
+        "--data-dir", required=True, type=str, help="Path to the data directory"
+    )
 
     # Model and training configuration
-    parser.add_argument("--num-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the model")
-    parser.add_argument("--num-res-channels", type=int, nargs="+", default=(256, 512, 512), help="Number of channels in the residual blocks")
-    parser.add_argument("--num-res-layers", type=int, default=3, help="Number of residual layers in the model")
-    parser.add_argument("--downsample-parameters", type=int, nargs=4, default=(2, 4, 1, 1), help="Parameters for the downsampling layers")
-    parser.add_argument("--upsample-parameters", type=int, nargs=5, default=(2, 4, 1, 1, 0), help="Parameters for the upsampling layers")
-    parser.add_argument("--num-embeddings", type=int, default=256, help="Number of embeddings in the VQ-VAE")
-    parser.add_argument("--embedding-dim", type=int, default=632, help="Dimension of the embeddings in the VQ-VAE")
-    parser.add_argument("--batch-size", type=int, default=32, help="Batch size for training")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train the model")
-    parser.add_argument("--lr-g", type=float, default=1e-4, help="Learning rate for the generator")
-    parser.add_argument("--lr-d", type=float, default=5e-4, help="Learning rate for the discriminator")
-    parser.add_argument("--perceptual-weight", type=float, default=0.005, help="Weight for the perceptual loss")
-    parser.add_argument("--adv-weight", type=float, default=0.05, help="Weight for the adversarial loss")
+    parser.add_argument(
+        "--num-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the model",
+    )
+    parser.add_argument(
+        "--num-res-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the residual blocks",
+    )
+    parser.add_argument(
+        "--num-res-layers",
+        type=int,
+        default=3,
+        help="Number of residual layers in the model",
+    )
+    parser.add_argument(
+        "--downsample-parameters",
+        type=int,
+        nargs=4,
+        default=(2, 4, 1, 1),
+        help="Parameters for the downsampling layers",
+    )
+    parser.add_argument(
+        "--upsample-parameters",
+        type=int,
+        nargs=5,
+        default=(2, 4, 1, 1, 0),
+        help="Parameters for the upsampling layers",
+    )
+    parser.add_argument(
+        "--num-embeddings",
+        type=int,
+        default=256,
+        help="Number of embeddings in the VQ-VAE",
+    )
+    parser.add_argument(
+        "--embedding-dim",
+        type=int,
+        default=632,
+        help="Dimension of the embeddings in the VQ-VAE",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=32, help="Batch size for training"
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=100, help="Number of epochs to train the model"
+    )
+    parser.add_argument(
+        "--lr-g", type=float, default=1e-4, help="Learning rate for the generator"
+    )
+    parser.add_argument(
+        "--lr-d", type=float, default=5e-4, help="Learning rate for the discriminator"
+    )
+    parser.add_argument(
+        "--perceptual-weight",
+        type=float,
+        default=0.005,
+        help="Weight for the perceptual loss",
+    )
+    parser.add_argument(
+        "--adv-weight", type=float, default=0.05, help="Weight for the adversarial loss"
+    )
 
     # Misc
-    parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loading")
+    parser.add_argument(
+        "--num-workers", type=int, default=10, help="Number of workers for data loading"
+    )
     parser.add_argument("--wandb", action="store_true", help="Use wandb for logging")
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
-    
+
     return parser
 
 
@@ -91,6 +157,7 @@ def replace_bn_with_in(module):
             # Recursively apply to child modules
             replace_bn_with_in(child)
 
+
 def init_weights(m):
     """
     Initialize the weights of a module using Kaiming normal initialization.
@@ -105,33 +172,10 @@ def init_weights(m):
         torch.nn.init.kaiming_normal_(m.weight)
 
 
-def generate_random_masks(batch_size, image_size, min_size=16, max_size=256):
-    """
-    Generate random mask coordinates and sizes for a batch of images.
-    
-    Args:
-    - batch_size (int): Number of images in the batch.
-    - image_size (int): Size of the images in the batch.
-    - min_size (int): Minimum size of the mask.
-    - max_size (int): Maximum size of the mask.
-
-    Returns:
-    - List(dict): coordinates and sizes of the masks for each image in the batch.
-    """
-    mask = np.ones(batch_size, 1, image_size, image_size)
-    for i in range(batch_size):
-        mask_width, mask_height = torch.randint(min_size, max_size, (2,)).tolist()
-        x = torch.randint(0, image_size - mask_width, (1,)).item()
-        y = torch.randint(0, image_size - mask_height, (1,)).item()
-
-        mask[i, :, x:x + mask_width, y:y + mask_height] = 0
-    return mask
-
-
 def generate_random_circular_masks(batch_size, image_size, min_radius=8, max_radius=64):
     """
     Generate random circular mask coordinates and sizes for a batch of images.
-    
+
     Args:
     - batch_size (int): Number of images in the batch.
     - image_size (int): Size of the images in the batch.
@@ -148,7 +192,7 @@ def generate_random_circular_masks(batch_size, image_size, min_radius=8, max_rad
         y0 = np.random.randint(mask_radius, image_size - mask_radius)
 
         y, x = np.ogrid[:image_size, :image_size]
-        circle = (x - x0) ** 2 + (y - y0) ** 2 <= mask_radius ** 2
+        circle = (x - x0) ** 2 + (y - y0) ** 2 <= mask_radius**2
         mask[i] = np.logical_not(np.logical_and(mask[i], circle))
 
     mask = torch.tensor(mask, dtype=torch.float32)
@@ -164,9 +208,9 @@ def main(args):
         accelerator.init_trackers(
             project_name="inpainting-vqvae",
             config=vars(args),
-            init_kwargs={"name": args.experiment_name}
+            init_kwargs={"name": args.experiment_name},
         )
-    
+
     # Set seed for reproducibility
     set_seed(args.seed)
     set_determinism(args.seed)
@@ -175,54 +219,84 @@ def main(args):
     checkpoint_dir = Path("checkpoints") / args.experiment_name
     if accelerator.is_main_process:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Load the data
-    train_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
-        os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True)]
-    valid_paths = [{"image": p, "mask": p.replace("image", "mask")} for p in glob(
-        os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True)]
-    
-    # Define the transforms
-    train_transforms = Compose([
-        LoadImaged(keys=["image", "mask"]),
-        EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
-        ScaleIntensityRanged(keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0),  # Lung window
-        Orientationd(keys=["image", "mask"], axcodes="RAS"),
-        Spacingd(keys=["image", "mask"], pixdim=(0.688, 0.688, 2.0), mode=("bilinear", "nearest")),  # Mean spacing, median slice thickness
-        ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, 128)),
-        ToTensord(keys=["image", "mask"]),
-        FilterSlicesByMaskFuncd(
-            keys=["image", "mask"],
-            mask_key="mask",
-            mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
-            slice_dim=3,
-            num_slices=16,
-        ),
-    ])
 
-    valid_transforms = Compose([
-        LoadImaged(keys=["image", "mask"]),
-        EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
-        ScaleIntensityRanged(keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0),  # Lung window
-        Orientationd(keys=["image", "mask"], axcodes="RAS"),
-        Spacingd(keys=["image", "mask"], pixdim=(0.688, 0.688, 2.0), mode=("bilinear", "nearest")),  # Mean spacing, median slice thickness
-        ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, 128)),
-        ToTensord(keys=["image", "mask"]),
-        FilterSlicesByMaskFuncd(
-            keys=["image", "mask"],
-            mask_key="mask",
-            mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2)) == 0,  # Keep slices without mask
-            slice_dim=3,
-            num_slices=16,
-        ),
-    ])
+    # Load the data
+    train_paths = [
+        {"image": p, "mask": p.replace("image", "mask")}
+        for p in glob(
+            os.path.join(args.data_dir, "train", "**", "image.nii.gz"), recursive=True
+        )
+    ]
+    valid_paths = [
+        {"image": p, "mask": p.replace("image", "mask")}
+        for p in glob(
+            os.path.join(args.data_dir, "valid", "**", "image.nii.gz"), recursive=True
+        )
+    ]
+
+    # Define the transforms
+    train_transforms = Compose(
+        [
+            LoadImaged(keys=["image", "mask"]),
+            EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+            ScaleIntensityRanged(
+                keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0
+            ),  # Lung window
+            Orientationd(keys=["image", "mask"], axcodes="RAS"),
+            Spacingd(
+                keys=["image", "mask"],
+                pixdim=(0.688, 0.688, 2.0),
+                mode=("bilinear", "nearest"),
+            ),  # Mean spacing, median slice thickness
+            ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, 128)),
+            ToTensord(keys=["image", "mask"]),
+            FilterSlicesByMaskFuncd(
+                keys=["image", "mask"],
+                mask_key="mask",
+                mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2))
+                == 0,  # Keep slices without mask
+                slice_dim=3,
+                num_slices=16,
+            ),
+        ]
+    )
+
+    valid_transforms = Compose(
+        [
+            LoadImaged(keys=["image", "mask"]),
+            EnsureChannelFirstd(keys=["image", "mask"], channel_dim="no_channel"),
+            ScaleIntensityRanged(
+                keys=["image"], a_min=-1300, a_max=200, b_min=-1.0, b_max=1.0
+            ),  # Lung window
+            Orientationd(keys=["image", "mask"], axcodes="RAS"),
+            Spacingd(
+                keys=["image", "mask"],
+                pixdim=(0.688, 0.688, 2.0),
+                mode=("bilinear", "nearest"),
+            ),  # Mean spacing, median slice thickness
+            ResizeWithPadOrCropd(keys=["image", "mask"], spatial_size=(512, 512, 128)),
+            ToTensord(keys=["image", "mask"]),
+            FilterSlicesByMaskFuncd(
+                keys=["image", "mask"],
+                mask_key="mask",
+                mask_filter_func=lambda mask: mask.sum(dim=(0, 1, 2))
+                == 0,  # Keep slices without mask
+                slice_dim=3,
+                num_slices=16,
+            ),
+        ]
+    )
 
     # Create the data loaders
     train_data = Dataset(data=train_paths, transform=train_transforms)
-    train_data = DataLoader(train_data, batch_size=args.batch_size, num_workers=args.num_workers)
+    train_data = DataLoader(
+        train_data, batch_size=args.batch_size, num_workers=args.num_workers
+    )
     val_data = Dataset(data=valid_paths, transform=valid_transforms)
-    val_data = DataLoader(val_data, batch_size=args.batch_size, num_workers=args.num_workers)
-    
+    val_data = DataLoader(
+        val_data, batch_size=args.batch_size, num_workers=args.num_workers
+    )
+
     # Initialize the models
     model = VQVAE(
         spatial_dims=2,
@@ -256,41 +330,55 @@ def main(args):
         spatial_dims=2,
         network_type="alex",
     )
-    perceptual_loss.to(accelerator.device)  # move the loss function to the device for distributed training
+    perceptual_loss.to(
+        accelerator.device
+    )  # move the loss function to the device for distributed training
 
     l1_loss = L1Loss()
     adv_loss = PatchAdversarialLoss(criterion="least_squares")
-    
-    # Initialize the optimizers and lr schedulers
-    lr_g = args.lr_g * (args.batch_size * 16 * accelerator.num_processes / 256)  # scale the learning rate
-    lr_d = args.lr_d * (args.batch_size * 16 * accelerator.num_processes / 256)  # scale the learning rate
 
-    N = len(train_data) * args.epochs // accelerator.num_processes  # number of training steps
+    # Initialize the optimizers and lr schedulers
+    lr_g = args.lr_g * (
+        args.batch_size * 16 * accelerator.num_processes / 256
+    )  # scale the learning rate
+    lr_d = args.lr_d * (
+        args.batch_size * 16 * accelerator.num_processes / 256
+    )  # scale the learning rate
+
+    N = (
+        len(train_data) * args.epochs // accelerator.num_processes
+    )  # number of training steps
 
     optimizer_g = torch.optim.AdamW(params=model.parameters(), lr=lr_g)
     optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr_d)
 
     # Use a consine annealing learning rate schedule with linear warm-up
     lr_scheduler_g = SequentialLR(
-        optimizer_g, 
+        optimizer_g,
         [
-            LinearLR(optimizer_g, start_factor=0.01, end_factor=1.0, total_iters=N // 10),
+            LinearLR(
+                optimizer_g, start_factor=0.01, end_factor=1.0, total_iters=N // 10
+            ),
             CosineAnnealingLR(optimizer_g, T_max=N - N // 10),
         ],
         milestones=[N // 10],
     )
     lr_scheduler_d = SequentialLR(
-        optimizer_d, 
+        optimizer_d,
         [
-            LinearLR(optimizer_d, start_factor=0.01, end_factor=1.0, total_iters=N // 10),
+            LinearLR(
+                optimizer_d, start_factor=0.01, end_factor=1.0, total_iters=N // 10
+            ),
             CosineAnnealingLR(optimizer_d, T_max=N - N // 10),
         ],
         milestones=[N // 10],
     )
 
     # Prepare the models, data and optimizers for distributed training
-    model, discriminator, optimizer_g, optimizer_d, train_data, val_data = accelerator.prepare(
-        model, discriminator, optimizer_g, optimizer_d, train_data, val_data
+    model, discriminator, optimizer_g, optimizer_d, train_data, val_data = (
+        accelerator.prepare(
+            model, discriminator, optimizer_g, optimizer_d, train_data, val_data
+        )
     )
 
     # Define global training and validation variables
@@ -307,16 +395,20 @@ def main(args):
             "epoch_loss": torch.tensor([0.0], device=accelerator.device),
             "gen_epoch_loss": torch.tensor([0.0], device=accelerator.device),
             "disc_epoch_loss": torch.tensor([0.0], device=accelerator.device),
-            "num_batches": torch.tensor([0], device=accelerator.device)
+            "num_batches": torch.tensor([0], device=accelerator.device),
         }
 
         # Training epoch
         for batch in train_data:
-            
-            images = batch["image"]
-            images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-            mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
+            images = batch["image"]
+            images.to(
+                accelerator.device
+            )  # explicitly move the data to the device because of the cloning below
+
+            mask = generate_random_circular_masks(images.size(0), 512).to(
+                accelerator.device
+            )
             masked_images = images.clone()  # deep-copy to avoid in-place operations
             masked_images = masked_images * mask
 
@@ -332,26 +424,41 @@ def main(args):
 
             recons_loss = l1_loss(reconstruction.float(), images.float())
             p_loss = perceptual_loss(reconstruction.float(), images.float())
-            generator_loss = adv_loss(logits_fake, target_is_real=True, for_discriminator=False)
-            loss_g = recons_loss + quantization_loss + args.perceptual_weight * p_loss + args.adv_weight * generator_loss
+            generator_loss = adv_loss(
+                logits_fake, target_is_real=True, for_discriminator=False
+            )
+            loss_g = (
+                recons_loss
+                + quantization_loss
+                + args.perceptual_weight * p_loss
+                + args.adv_weight * generator_loss
+            )
 
             accelerator.backward(loss_g)
-            accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip the gradients
+            accelerator.clip_grad_norm_(
+                model.parameters(), max_norm=1.0
+            )  # clip the gradients
             optimizer_g.step()
 
             # Discriminator part
             optimizer_d.zero_grad(set_to_none=True)
 
             logits_fake = discriminator(reconstruction.contiguous().detach())[-1]
-            loss_d_fake = adv_loss(logits_fake, target_is_real=False, for_discriminator=True)
+            loss_d_fake = adv_loss(
+                logits_fake, target_is_real=False, for_discriminator=True
+            )
             logits_real = discriminator(images.contiguous().detach())[-1]
-            loss_d_real = adv_loss(logits_real, target_is_real=True, for_discriminator=True)
+            loss_d_real = adv_loss(
+                logits_real, target_is_real=True, for_discriminator=True
+            )
             discriminator_loss = 0.5 * (loss_d_fake + loss_d_real)
 
             loss_d = args.adv_weight * discriminator_loss
 
             accelerator.backward(loss_d)
-            accelerator.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)  # clip the gradients
+            accelerator.clip_grad_norm_(
+                discriminator.parameters(), max_norm=1.0
+            )  # clip the gradients
             optimizer_d.step()
 
             # Log the losses, learning rates and epoch
@@ -375,35 +482,43 @@ def main(args):
             # Update the learning rates
             lr_scheduler_g.step()
             lr_scheduler_d.step()
-        
+
         # Log the average losses for the epoch
         accelerator.wait_for_everyone()
-        epoch_vars = {k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()}
+        epoch_vars = {
+            k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()
+        }
         logs = {
-            "recons_loss / train / epoch": epoch_vars["epoch_loss"] / epoch_vars["num_batches"],
-            "gen_loss / train / epoch": epoch_vars["gen_epoch_loss"] / epoch_vars["num_batches"],
-            "disc_loss / train / epoch": epoch_vars["disc_epoch_loss"] / epoch_vars["num_batches"],
+            "recons_loss / train / epoch": epoch_vars["epoch_loss"]
+            / epoch_vars["num_batches"],
+            "gen_loss / train / epoch": epoch_vars["gen_epoch_loss"]
+            / epoch_vars["num_batches"],
+            "disc_loss / train / epoch": epoch_vars["disc_epoch_loss"]
+            / epoch_vars["num_batches"],
         }
         accelerator.log(logs, step=global_step - 1)
 
         # Set the model to evaluation mode and reset the epoch variables
         model.eval()
         epoch_vars = {
-            "epoch_loss": torch.tensor([0.0], device=accelerator.device), 
-            "num_batches": torch.tensor([0], device=accelerator.device)
+            "epoch_loss": torch.tensor([0.0], device=accelerator.device),
+            "num_batches": torch.tensor([0], device=accelerator.device),
         }
 
         # Validation epoch
         with torch.no_grad():
             for step, batch in enumerate(val_data):
-                
-                images = batch["image"]
-                images.to(accelerator.device)  # explicitly move the data to the device because of the cloning below
 
-                mask = generate_random_circular_masks(images.size(0), 512).to(accelerator.device)
+                images = batch["image"]
+                images.to(
+                    accelerator.device
+                )  # explicitly move the data to the device because of the cloning below
+
+                mask = generate_random_circular_masks(images.size(0), 512).to(
+                    accelerator.device
+                )
                 masked_images = images.clone()  # deep-copy to avoid in-place operations
                 masked_images = masked_images * mask
-
 
                 # Concatenate the masked images and the inversed masks in the channel dimension for the VQ-VAE
                 mask = mask * -1 + 1
@@ -418,38 +533,55 @@ def main(args):
 
                     # Create wandb image with the original image, the masked image and the reconstruction
                     image_grid = make_grid(
-                        torch.cat([images[:1], masked_images[:1, 1:, ...], masked_images[:1, :1, ...], reconstruction[:1]]),
+                        torch.cat(
+                            [
+                                images[:1],
+                                masked_images[:1, 1:, ...],
+                                masked_images[:1, :1, ...],
+                                reconstruction[:1],
+                            ]
+                        ),
                         nrow=4,
                         normalize=True,
                         value_range=(-1, 1),
                     )
                     image_grid = image_grid.permute(1, 2, 0).cpu().numpy()
-                    accelerator.log({"reconstruction": [wandb.Image(image_grid)]}, step=global_step - 1)
-                
+                    accelerator.log(
+                        {"reconstruction": [wandb.Image(image_grid)]},
+                        step=global_step - 1,
+                    )
+
                 # update epoch variables
                 epoch_vars["epoch_loss"] += recons_loss.item()
                 epoch_vars["num_batches"] += 1
 
         # Log the average loss for the epoch
         accelerator.wait_for_everyone()
-        epoch_vars = {k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()}
+        epoch_vars = {
+            k: accelerator.reduce(v, reduction="sum") for k, v in epoch_vars.items()
+        }
         val_loss = epoch_vars["epoch_loss"] / epoch_vars["num_batches"]
-        accelerator.log({
-            "recons_loss / valid / epoch": val_loss,
-        }, step=global_step - 1)
+        accelerator.log(
+            {
+                "recons_loss / valid / epoch": val_loss,
+            },
+            step=global_step - 1,
+        )
 
         # Save the model checkpoint if the validation loss is lower
         if val_loss < min_val_loss:
             min_val_loss = val_loss
             unwrapped_model = accelerator.unwrap_model(model)
-            accelerator.save(unwrapped_model.state_dict(), checkpoint_dir / "best_model.pth")
-    
+            accelerator.save(
+                unwrapped_model.state_dict(), checkpoint_dir / "best_model.pth"
+            )
+
     # Save the final model
     unwrapped_model = accelerator.unwrap_model(model)
     accelerator.save(unwrapped_model.state_dict(), checkpoint_dir / "final_model.pth")
     accelerator.end_training()
 
-    
+
 if __name__ == "__main__":
 
     torch.autograd.set_detect_anomaly(True)
