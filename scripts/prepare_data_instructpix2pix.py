@@ -150,13 +150,16 @@ def main(args):
     )
 
     # Create a dictionary to store the original and edited image paths along with the instructions
-    data = {"orig_path": [], "edit_path": [], "instruction": []}
+    data = {"edit_prompt": [], "original_image": [], "edited_image": []}
 
     # Iterate through the original and edited image paths
     for orig_path, edit_path in zip(orig_paths, edit_paths):
         # Get the PatientID and NoduleID from the original image path
-        patient_id = Path(orig_path).parent.parent.parent.name
-        nodule_id = Path(orig_path).stem.split("_")[-1].split("=")[-1]
+        orig_path = Path(orig_path)
+        edit_path = Path(edit_path)
+
+        patient_id = orig_path.parent.parent.parent.name
+        nodule_id = orig_path.stem.split("_")[-1].split("=")[-1]
 
         # Get the malignancy scores of the different annotators for the corresponding PatientID and NoduleID
         malignancy = annotations[
@@ -188,9 +191,9 @@ def main(args):
                 instruction = instruction.replace("pulmonary", "benign pulmonary")
 
             # Add the original and edited image paths along with the instruction to the dictionary
-            data["orig_path"].append(orig_path)
-            data["edit_path"].append(edit_path)
-            data["instruction"].append(instruction)
+            data["original_image"].append(str(orig_path))
+            data["edited_image"].append(str(edit_path))
+            data["edit_prompt"].append(instruction)
 
     # Write the original and edited image paths along with the instruction to a jsonl file
     pd.DataFrame(data).to_json(
