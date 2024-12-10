@@ -23,4 +23,4 @@ apptainer exec --nv --bind $MOUNT_PATH --env-file ./.env $CONTAINER_PATH \
     python3 -u scripts/prepare_data_instructpix2pix.py \
         	--data-dir "/gpfs/work4/0/tese0618/Projects/MagicNod/results/LIDC-IDRI/inpainting/" \
             --annotations-csv "/gpfs/work4/0/tese0618/Datasets/LIDC-IDRI/annotations.csv" \
-            --output-path "/gpfs/work4/0/tese0618/Projects/MagicNod/results/LIDC-IDRI/inpainting/instructions.jsonl"
+            --output-dir "/gpfs/work4/0/tese0618/Projects/MagicNod/data/LIDC-IDRI-pix2pix/"
