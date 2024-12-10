@@ -1,5 +1,6 @@
 import argparse
 from glob import glob
+from shutil import copy
 from pathlib import Path
 
 import pandas as pd
@@ -121,9 +122,9 @@ def get_args_parser():
         help="path to the annotations csv file",
     )
     parser.add_argument(
-        "--output-path",
+        "--output-dir",
         type=str,
-        default="data/instructions.jsonl",
+        default="data/instructpix2pix",
         help="path to the output jsonl file",
     )
 
@@ -134,21 +135,23 @@ def main(args):
 
     # Create the data directory and output directory paths
     data_dir = Path(args.data_dir)
-    output_path = Path(args.output_path)
+    output_dir = Path(args.output_dir)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "original_images").mkdir(parents=True, exist_ok=True)	
+    (output_dir / "edited_images").mkdir(parents=True, exist_ok=True)
 
     # Load the annotations csv file with the PatientIDs, NoduleIDs, and corresponding malignancy scores
     annotations = pd.read_csv(args.annotations_csv)
 
     # Get the paths to the original and edited images
-    orig_paths = glob(
+    orig_paths = sorted(glob(
         str(data_dir / "train" / "**" / "combined_mask_slice=*_nod=*.png"),
         recursive=True,
-    )
-    edit_paths = glob(
+    ))
+    edit_paths = sorted(glob(
         str(data_dir / "train" / "**" / "image_slice=*_nod=*.png"), recursive=True
-    )
+    ))
 
     # Create a dictionary to store the original and edited image paths along with the instructions
     data = {"edit_prompt": [], "original_image": [], "edited_image": []}
@@ -161,6 +164,9 @@ def main(args):
 
         patient_id = orig_path.parent.parent.parent.name
         nodule_id = orig_path.stem.split("_")[-1].split("=")[-1]
+        slice_id = orig_path.stem.split("_")[-2].split("=")[-1]
+
+        output_name = f"{patient_id}_slice={slice_id}_nod={nodule_id}.png"
 
         # Get the malignancy scores of the different annotators for the corresponding PatientID and NoduleID
         malignancy = annotations[
@@ -195,9 +201,13 @@ def main(args):
             data["original_image"].append(str(orig_path))
             data["edited_image"].append(str(edit_path))
             data["edit_prompt"].append(instruction)
+        
+        # Copy the original and edited images to the output directory
+        copy(orig_path, output_dir / "original_images" / output_name)
+        copy(edit_path, output_dir / "edited_images" / output_name)
 
     # Write the original and edited image paths along with the instruction to a jsonl file
-    pd.DataFrame(data).to_json(output_path, orient="records", lines=True)
+    pd.DataFrame(data).to_json(output_dir / "train.jsonl", orient="records", lines=True)
 
 
 if __name__ == "__main__":
