@@ -112,16 +112,16 @@ INSTRUCTIONS = [
 def get_args_parser():
     parser = argparse.ArgumentParser(description="Prepare data for InstructPix2Pix")
     parser.add_argument(
-        "--data_dir", type=str, default="data", help="path to the data directory"
+        "--data-dir", type=str, default="data", help="path to the data directory"
     )
     parser.add_argument(
-        "--annotations_csv",
+        "--annotations-csv",
         type=str,
         default="data/annotations.csv",
         help="path to the annotations csv file",
     )
     parser.add_argument(
-        "--output_path",
+        "--output-path",
         type=str,
         default="data/instructions.jsonl",
         help="path to the output jsonl file",
@@ -192,10 +192,10 @@ def main(args):
             data["edit_path"].append(edit_path)
             data["instruction"].append(instruction)
 
-        # Write the original and edited image paths along with the instruction to a jsonl file
-        pd.DataFrame(data).to_json(
-            output_path, orient="records", lines=True
-        )
+    # Write the original and edited image paths along with the instruction to a jsonl file
+    pd.DataFrame(data).to_json(
+        output_path, orient="records", lines=True
+    )
 
 
 if __name__ == "__main__":
