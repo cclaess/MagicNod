@@ -143,10 +143,10 @@ def main(args):
 
     # Get the paths to the original and edited images
     orig_paths = glob(
-        data_dir / "train" / "**" / "combined_mask_slice=*_nod=*.png", recursive=True
+        str(data_dir / "train" / "**" / "combined_mask_slice=*_nod=*.png"), recursive=True
     )
     edit_paths = glob(
-        data_dir / "train" / "**" / "image_slice=*_nod=*.png", recursive=True
+        str(data_dir / "train" / "**" / "image_slice=*_nod=*.png"), recursive=True
     )
 
     # Create a dictionary to store the original and edited image paths along with the instructions
