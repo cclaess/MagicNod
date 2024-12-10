@@ -5,7 +5,7 @@ wandb login
 
 accelerate launch --mixed_precision="fp16" generativezoo/models/SD/InstructPix2Pix.py \
     --pretrained_model_name_or_path="stabilityai/stable-diffusion-2-1" \
-    --train_data_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/results/LIDC-IDRI/inpainting/" \
+    --train_data_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/data/LIDC-IDRI-pix2pix/" \
     --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/checkpoints/instruct_pix2pix_1" \
     --resolution=512 --random_flip \
     --train_batch_size=32 --gradient_accumulation_steps=1 --gradient_checkpointing \
