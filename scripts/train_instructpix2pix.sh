@@ -1,32 +1,23 @@
-export MODEL_NAME="stabilityai/stable-diffusion-2-1"
-export OUTPUT_DIR=/gpfs/work4/0/tese0618/Projects/MagicNod/models/InstructPix2Pix/
-export DATASET_PATH="./../../../dataset/"
+cd ~/Projects/MagicNod | exit 1
 
-export WANDB_API_KEY="9c9ca3cd0f56b3e1ec268da8b0b8d545fbe85946"
-export WANDB_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_CONFIG_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_CACHE_DIR="/gpfs/work4/0/tese0618/Projects/MagicNod/wandb/$SLURM_JOBID/"
-export WANDB_START_METHOD="thread"
+mkdir -p $WANDB_DIR
 wandb login
 
-cd "/gpfs/work4/0/tese0618/Projects/MagicNod/generativezoo/models/SD" || exit
-
-accelerate launch --mixed_precision="fp16" InstructPix2Pix.py \
-    --pretrained_model_name_or_path=$MODEL_NAME \
-    --train_data_dir=$DATASET_PATH \
-    --output_dir=$OUTPUT_DIR \
+accelerate launch --mixed_precision="fp16" generativezoo/models/SD/InstructPix2Pix.py \
+    --pretrained_model_name_or_path="stabilityai/stable-diffusion-2-1" \
+    --train_data_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/results/LIDC-IDRI/inpainting/" \
+    --output_dir="/gpfs/work4/0/tese0618/Projects/MagicNod/checkpoints/instruct_pix2pix_1" \
     --resolution=512 --random_flip \
     --train_batch_size=32 --gradient_accumulation_steps=1 --gradient_checkpointing \
     --max_train_steps=25000 \
     --checkpointing_steps=5000 \
     --learning_rate=5e-05 --max_grad_norm=1 --lr_warmup_steps=0 \
     --conditioning_dropout_prob=0.05 \
-    --validation_image="./../../../../../Datasets/LNDb-Processed-GenAI/data1/Masked/LNDb-0096_153.png" \
-    --validation_prompt="put a pulmonary nodule in the red squares" \
+    --validation_image="/gpfs/work4/0/tese0618/Projects/MagicNod/results/LIDC-IDRI/inpainting/valid/LIDC-IDRI-0007/01-01-2000-NA-NA-81781/3000631.000000-NA-57680/combined_mask_slice=0007_nod=1.png" \
+    --validation_prompt="Put a malignant pulmonary nodule in the masked region." \
     --seed=42 \
     --report_to="wandb" \
-    --original_image_colum="original_image" \
+    --original_image_column="original_image" \
     --edited_image_column="edited_image" \
     --edit_prompt_column="edit_prompt" \
     --dataloader_num_workers=10 \
-    --output_dir "instruct-pix2pix-model-2"
