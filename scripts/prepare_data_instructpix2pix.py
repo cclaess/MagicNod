@@ -143,7 +143,8 @@ def main(args):
 
     # Get the paths to the original and edited images
     orig_paths = glob(
-        str(data_dir / "train" / "**" / "combined_mask_slice=*_nod=*.png"), recursive=True
+        str(data_dir / "train" / "**" / "combined_mask_slice=*_nod=*.png"),
+        recursive=True,
     )
     edit_paths = glob(
         str(data_dir / "train" / "**" / "image_slice=*_nod=*.png"), recursive=True
@@ -196,9 +197,7 @@ def main(args):
             data["edit_prompt"].append(instruction)
 
     # Write the original and edited image paths along with the instruction to a jsonl file
-    pd.DataFrame(data).to_json(
-        output_path, orient="records", lines=True
-    )
+    pd.DataFrame(data).to_json(output_path, orient="records", lines=True)
 
 
 if __name__ == "__main__":
