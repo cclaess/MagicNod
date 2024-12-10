@@ -161,7 +161,7 @@ def main(args):
         # Get the malignancy scores of the different annotators for the corresponding PatientID and NoduleID
         malignancy = annotations[
             (annotations["PatientID"] == patient_id)
-            & (annotations["NoduleID"] == nodule_id)
+            & (annotations["NoduleID"] == int(nodule_id))
         ]["Malignancy"].values
         malignancy = sum(list(malignancy)) / len(list(malignancy))
 
