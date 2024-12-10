@@ -134,7 +134,7 @@ def main(args):
 
     # Create the data directory and output directory paths
     data_dir = Path(args.data_dir)
-    output_path = Path(args.output_dir)
+    output_path = Path(args.output_path)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
