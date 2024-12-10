@@ -166,8 +166,6 @@ def main(args):
         nodule_id = orig_path.stem.split("_")[-1].split("=")[-1]
         slice_id = orig_path.stem.split("_")[-2].split("=")[-1]
 
-        output_name = f"{patient_id}_slice={slice_id}_nod={nodule_id}.png"
-
         # Get the malignancy scores of the different annotators for the corresponding PatientID and NoduleID
         malignancy = annotations[
             (annotations["PatientID"] == patient_id)
@@ -184,6 +182,8 @@ def main(args):
 
         for repeat in range(2):
 
+            output_name = f"{patient_id}_slice={slice_id}_nod={nodule_id}_num={repeat}.png"
+
             # Get a random instruction
             instruction = INSTRUCTIONS[
                 hash(f"{patient_id}_{nodule_id}_{repeat}") % len(INSTRUCTIONS)
@@ -198,13 +198,13 @@ def main(args):
                 instruction = instruction.replace("pulmonary", "benign pulmonary")
 
             # Add the original and edited image paths along with the instruction to the dictionary
-            data["original_image"].append(str(orig_path))
-            data["edited_image"].append(str(edit_path))
+            data["original_image"].append(str(output_dir / "original_images" / output_name))
+            data["edited_image"].append(str(output_dir / "edited_images" / output_name))
             data["edit_prompt"].append(instruction)
         
-        # Copy the original and edited images to the output directory
-        copy(orig_path, output_dir / "original_images" / output_name)
-        copy(edit_path, output_dir / "edited_images" / output_name)
+            # Copy the original and edited images to the output directory
+            copy(orig_path, output_dir / "original_images" / output_name)
+            copy(edit_path, output_dir / "edited_images" / output_name)
 
     # Write the original and edited image paths along with the instruction to a jsonl file
     pd.DataFrame(data).to_json(output_dir / "train.jsonl", orient="records", lines=True)
