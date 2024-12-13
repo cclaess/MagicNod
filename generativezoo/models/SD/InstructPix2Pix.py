@@ -642,6 +642,7 @@ def main():
     else:
         data_files = {}
         if args.train_data_dir is not None:
+            print("TEST: Loading data from local directory.")
             dataset = load_dataset(
                 args.train_data_dir,
                 cache_dir=args.cache_dir,
