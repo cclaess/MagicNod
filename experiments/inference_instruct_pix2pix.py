@@ -16,15 +16,15 @@ def get_args_parser():
 
     parser = argparse.ArgumentParser(description='Inferring with InstructPix2Pix')
 
-    parser.add_argument('--model_path', type=str, help='Path to the model')
+    parser.add_argument('--model-path', type=str, help='Path to the model')
 
     parser.add_argument('--prompt', type=str, help='Prompt for the model')
-    parser.add_argument('--data_dir', type=str, help='Path to the images folder')
-    parser.add_argument('--num_inference_steps', type=int, default=50, help='Number of inference steps')
-    parser.add_argument('--image_guidance_scale', type=float, default=2.5, help='Image guidance scale')
-    parser.add_argument('--guidance_scale', type=float, default=7.5, help='Guidance scale')
+    parser.add_argument('--data-dir', type=str, help='Path to the images folder')
+    parser.add_argument('--num-inference-steps', type=int, default=50, help='Number of inference steps')
+    parser.add_argument('--image-guidance-scale', type=float, default=2.5, help='Image guidance scale')
+    parser.add_argument('--guidance-scale', type=float, default=7.5, help='Guidance scale')
 
-    parser.add_argument('--output_dir', type=str, help='Path to the output folder')
+    parser.add_argument('--output-dir', type=str, help='Path to the output folder')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
 
 
