@@ -79,6 +79,7 @@ def main(args):
 
         save_path = Path(image_path.replace(args.data_dir, args.output_dir))
         save_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Saving edited image to {save_path}")
         edited_image.save(save_path)
 
 
