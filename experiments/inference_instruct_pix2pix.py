@@ -77,7 +77,8 @@ def main(args):
         cv2.rectangle(edited_image, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1)
         edited_image = Image.fromarray(edited_image)
 
-        save_path = Path(image_path.replace(args.data_dir, args.output_dir))
+        save_path = Path(image_path).relative_to(data_dir)
+        save_path = Path(args.output_dir) / save_path
         save_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"Saving edited image to {save_path}")
         edited_image.save(save_path)
