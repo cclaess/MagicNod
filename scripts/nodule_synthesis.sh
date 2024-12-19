@@ -6,7 +6,7 @@ wandb login
 python3 -u experiments/nodule_synthesis.py \
     --model-path "./checkpoints/instruct_pix2pix_2/" \
     --prompt "Put a malignant lung nodule in the masked region" \
-    --data-dir "./data/LNDb" \
+    --data-dir "/gpfs/work4/0/tese0618/Datasets/LNDb/" \
     --num-inference-steps 50 \
     --image-guidance-scale 2.5 \
     --guidance-scale 7.5 \
