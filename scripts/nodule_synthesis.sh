@@ -4,10 +4,7 @@ mkdir -p $WANDB_DIR
 wandb login
 
 python3 -u experiments/nodule_synthesis.py \
-    --model-path "./checkpoints/instruct_pix2pix_2/" \
-    --prompt "Put a malignant lung nodule in the masked region" \
+    --model-path-vqvae "./checkpoints/test_run_lidc_7/best_model.pth" \
+    --model-path-pix2pix "./checkpoints/instruct_pix2pix_2/" \
     --data-dir "/gpfs/work4/0/tese0618/Datasets/LNDb/" \
-    --num-inference-steps 50 \
-    --image-guidance-scale 2.5 \
-    --guidance-scale 7.5 \
     --output-dir "./results/LNDb/nodule_synthesis" \

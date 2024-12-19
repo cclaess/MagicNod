@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from PIL import Image
 from diffusers import StableDiffusionInstructPix2PixPipeline
+
 # from diffusers.utils import load_image
 # from lungmask import LMInferer
 from scipy.ndimage import label, find_objects
@@ -27,19 +28,86 @@ from magicnod.transforms import FilterSlicesByMaskFuncd
 
 def get_args_parser():
 
-    parser = argparse.ArgumentParser(description='Inferring with InstructPix2Pix')
+    parser = argparse.ArgumentParser(description="Inferring with InstructPix2Pix")
 
-    parser.add_argument('--model-path', type=str, help='Path to the model')
+    parser.add_argument(
+        "--model-path-vqvae", type=str, required=True, help="Path to the VQ-VAE model"
+    )
 
-    parser.add_argument('--prompt', type=str, help='Prompt for the model')
-    parser.add_argument('--data-dir', type=str, help='Path to the images folder')
-    parser.add_argument('--num-inference-steps', type=int, default=50, help='Number of inference steps')
-    parser.add_argument('--image-guidance-scale', type=float, default=2.5, help='Image guidance scale')
-    parser.add_argument('--guidance-scale', type=float, default=7.5, help='Guidance scale')
+    parser.add_argument(
+        "--num-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the model",
+    )
+    parser.add_argument(
+        "--num-res-channels",
+        type=int,
+        nargs="+",
+        default=(256, 512, 512),
+        help="Number of channels in the residual blocks",
+    )
+    parser.add_argument(
+        "--num-res-layers",
+        type=int,
+        default=3,
+        help="Number of residual layers in the model",
+    )
+    parser.add_argument(
+        "--downsample-parameters",
+        type=int,
+        nargs=4,
+        default=(2, 4, 1, 1),
+        help="Parameters for the downsampling layers",
+    )
+    parser.add_argument(
+        "--upsample-parameters",
+        type=int,
+        nargs=5,
+        default=(2, 4, 1, 1, 0),
+        help="Parameters for the upsampling layers",
+    )
+    parser.add_argument(
+        "--num-embeddings",
+        type=int,
+        default=256,
+        help="Number of embeddings in the VQ-VAE",
+    )
+    parser.add_argument(
+        "--embedding-dim",
+        type=int,
+        default=632,
+        help="Dimension of the embeddings in the VQ-VAE",
+    )
 
-    parser.add_argument('--output-dir', type=str, help='Path to the output folder')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument(
+        "--model-path-pix2pix",
+        type=str,
+        required=True,
+        help="Path to the InstructPix2Pix model",
+    )
+    parser.add_argument(
+        "--prompt",
+        type=str,
+        default="Put a lung nodule in the masked region.",
+        help="Prompt for the model",
+    )
+    parser.add_argument(
+        "--data-dir", type=str, default="./data", help="Path to the images folder"
+    )
+    parser.add_argument(
+        "--num-inference-steps", type=int, default=50, help="Number of inference steps"
+    )
+    parser.add_argument(
+        "--image-guidance-scale", type=float, default=2.5, help="Image guidance scale"
+    )
+    parser.add_argument(
+        "--guidance-scale", type=float, default=7.5, help="Guidance scale"
+    )
 
+    parser.add_argument("--output-dir", type=str, help="Path to the output folder")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
     return parser
 
@@ -133,21 +201,26 @@ def main(args):
     model.to(device).load_state_dict(state_dict)
     model.eval()
 
-    pipeline = StableDiffusionInstructPix2PixPipeline.from_pretrained(args.model_path, torch_dtype=torch.float16).to(device)
+    pipeline = StableDiffusionInstructPix2PixPipeline.from_pretrained(
+        args.model_path_pix2pix, torch_dtype=torch.float16
+    ).to(device)
     generator = torch.Generator(device).manual_seed(args.seed)
 
     # lungmask_inferer = LMInferer(modelname='LTRCLobes', fillmodel='R231')
 
     data_dir = Path(args.data_dir)
     image_paths = sorted(
-        glob(str(data_dir / "*data*" / "**" / "*.mhd"), recursive=True), 
-        key=lambda x: int(x.split("-")[-1].split(".")[0])
+        glob(str(data_dir / "*data*" / "**" / "*.mhd"), recursive=True),
+        key=lambda x: int(x.split("-")[-1].split(".")[0]),
     )
     mask_paths = sorted(
-        glob(str(data_dir / "*masks" / "**" / "*.mhd"), recursive=True), 
-        key=lambda x: int(x.split("-")[-1].split(".")[0])
+        glob(str(data_dir / "*masks" / "**" / "*.mhd"), recursive=True),
+        key=lambda x: int(x.split("-")[-1].split(".")[0]),
     )
-    data_paths = [{"image": image_path, "mask": mask_path} for image_path, mask_path in zip(image_paths, mask_paths)]
+    data_paths = [
+        {"image": image_path, "mask": mask_path}
+        for image_path, mask_path in zip(image_paths, mask_paths)
+    ]
 
     # Define the transforms
     transforms = Compose(
@@ -199,10 +272,14 @@ def main(args):
             nodule_mask = nodule_mask.unsqueeze(0).to(device)
             circular_nodule_mask = circular_nodule_mask.unsqueeze(0).to(device)
 
-             # Combine image and mask as input
+            # Combine image and mask as input
             masked_image = image.clone()
-            masked_image = masked_image * np.abs(circular_nodule_mask - 1)  # Apply inversed mask to image
-            input_image = torch.cat([masked_image, circular_nodule_mask], dim=1) # Concatenate along the channel dimension
+            masked_image = masked_image * np.abs(
+                circular_nodule_mask - 1
+            )  # Apply inversed mask to image
+            input_image = torch.cat(
+                [masked_image, circular_nodule_mask], dim=1
+            )  # Concatenate along the channel dimension
 
             # Generate reconstructed image
             recon_image, _ = model(input_image)
@@ -211,15 +288,13 @@ def main(args):
             smooth_mask = circular_nodule_mask.clone()
 
             # Apply convolutional filter to mask to create a smooth transition
-            kernel = torch.ones((7, 7), dtype=float) * (1 / 49)  # create_circular_average_kernel(7, 3).to(device)
-            smooth_mask = torch.nn.functional.conv2d(
-                smooth_mask, kernel, padding=3
-            )
+            kernel = torch.ones((7, 7), dtype=float) * (
+                1 / 49
+            )  # create_circular_average_kernel(7, 3).to(device)
+            smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
             # Cut and paste the reconstructed image within the mask region back to the original image
-            combined_image = (
-                image * (smooth_mask - 1) + recon_image * smooth_mask
-            )
+            combined_image = image * (smooth_mask - 1) + recon_image * smooth_mask
 
             image_array = (
                 image.squeeze(0)
@@ -274,8 +349,16 @@ def main(args):
 
             # retrieve bounding boxes of nodule from nodules_info
             x, y, w, h = cv2.boundingRect(round_mask_array)
-            cv2.rectangle(image_array, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1)
-            cv2.rectangle(edited_image_array, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1)
+            cv2.rectangle(
+                image_array, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1
+            )
+            cv2.rectangle(
+                edited_image_array,
+                (x - 5, y - 5),
+                (x + w + 5, y + h + 5),
+                (0, 255, 0),
+                1,
+            )
 
             image_pil = Image.fromarray(image_array)
             edited_image_pil = Image.fromarray(edited_image_array)
