@@ -274,7 +274,7 @@ def main(args):
 
             # Combine image and mask as input
             masked_image = image.clone()
-            masked_image = masked_image * np.abs(
+            masked_image = masked_image * torch.abs(
                 circular_nodule_mask - 1
             )  # Apply inversed mask to image
             input_image = torch.cat(
