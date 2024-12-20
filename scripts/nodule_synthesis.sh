@@ -6,5 +6,5 @@ wandb login
 python3 -u experiments/nodule_synthesis.py \
     --model-path-vqvae "./checkpoints/test_run_lidc_7/best_model.pth" \
     --model-path-pix2pix "./checkpoints/instruct_pix2pix_2/" \
-    --data-dir "/gpfs/work4/0/tese0618/Datasets/LNDb/" \
+    --data-dir "./data/LNDb" \
     --output-dir "./results/LNDb/nodule_synthesis" \

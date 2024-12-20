@@ -210,12 +210,12 @@ def main(args):
 
     data_dir = Path(args.data_dir)
     image_paths = sorted(
-        glob(str(data_dir / "*data*" / "**" / "*.mhd"), recursive=True),
-        key=lambda x: int(x.split("-")[-1].split(".")[0]),
+        glob(str(data_dir / "*data*" / "*.nii.gz")),
+        key=lambda x: Path(x).stem,
     )
     mask_paths = sorted(
-        glob(str(data_dir / "*masks" / "**" / "*.mhd"), recursive=True),
-        key=lambda x: int(x.split("-")[-1].split(".")[0]),
+        glob(str(data_dir / "*masks" / "*.nii.gz")),
+        key=lambda x: Path(x).stem,
     )
     data_paths = [
         {"image": image_path, "mask": mask_path}
