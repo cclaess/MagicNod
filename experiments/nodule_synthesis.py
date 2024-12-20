@@ -352,8 +352,8 @@ def main(args):
                 generator=generator,
             ).images[0]
 
-            # retrieve bounding boxes of nodule from nodules_info
-            x, y, w, h = cv2.boundingRect(round_mask_array)
+            # retrieve bounding boxes of nodule
+            x, y, w, h = cv2.boundingRect(round_mask_array[..., 0].astype(np.uint8))
             cv2.rectangle(
                 image_array, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1
             )
