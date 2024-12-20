@@ -385,6 +385,8 @@ def main(args):
             image_array = ((np.clip(image_array, -1, 1) + 1) / 2 * 255).astype(np.uint8)
             round_mask_array = (round_mask_array * 255).astype(np.uint8)
 
+            Image.fromarray(combined_array).save(save_dir / f"{subject_id}-slice={idx}-input.png")
+
             # Forward image through the diffusion model
             edited_image_array = np.array(
                 pipeline(
