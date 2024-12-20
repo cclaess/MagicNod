@@ -253,6 +253,12 @@ def main(args):
         if data is None:
             continue
 
+        # Get the original paths
+        orig_path = Path(data[0]["image"].meta["filename_or_obj"])
+
+        # Extract the subject ID from the path
+        subject_id = orig_path.stem
+
         for idx, slice_data in enumerate(data):
 
             image = slice_data["image"]
@@ -382,8 +388,8 @@ def main(args):
             save_dir = Path(args.output_dir) / save_dir
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            image_pil.save(save_dir / f"image_slice={idx}.png")
-            edited_image_pil.save(save_dir / f"edited_image_slice={idx}.png")
+            image_pil.save(save_dir / f"{subject_id}-slice={idx}.png")
+            edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
 
 
 if __name__ == "__main__":
