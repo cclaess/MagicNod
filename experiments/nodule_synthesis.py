@@ -350,7 +350,7 @@ def main(args):
                 image_guidance_scale=args.image_guidance_scale,
                 guidance_scale=args.guidance_scale,
                 generator=generator,
-            ).images[0]
+            ).images[0].numpy()
 
             # retrieve bounding boxes of nodule
             x, y, w, h = cv2.boundingRect(round_mask_array[..., 0].astype(np.uint8))
