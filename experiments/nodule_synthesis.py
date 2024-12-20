@@ -351,8 +351,16 @@ def main(args):
                 .repeat(3, axis=-1)
             )
 
+            print(combined_array.shape)
+            print(combined_array.min(), combined_array.max())
+
             combined_array = ((np.clip(combined_array, -1, 1) + 1) / 2 * 255).astype(
                 np.uint8)    # Normalize the images to [0, 255]
+            
+            print(combined_array.min(), combined_array.max())
+            import sys
+            sys.exit() 
+
             image_array = ((np.clip(image_array, -1, 1) + 1) / 2 * 255).astype(np.uint8)
             round_mask_array = (round_mask_array * 255).astype(np.uint8)
 
