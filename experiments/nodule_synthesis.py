@@ -345,6 +345,11 @@ def main(args):
                 .repeat(3, axis=-1)
             )
 
+            combined_array = ((np.clip(combined_array, -1, 1) + 1) / 2 * 255).astype(
+                np.uint8)    # Normalize the images to [0, 255]
+            image_array = ((np.clip(image_array, -1, 1) + 1) / 2 * 255).astype(np.uint8)
+            round_mask_array = (round_mask_array * 255).astype(np.uint8)
+
             # Forward image through the diffusion model
             edited_image_array = np.array(
                 pipeline(
@@ -355,20 +360,6 @@ def main(args):
                     guidance_scale=args.guidance_scale,
                     generator=generator,
                 ).images[0]
-            )
-
-            # Normalize the images to [0, 255]
-            image_array = ((image_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
-            # mask_array = ((mask_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
-            round_mask_array = (
-                ((round_mask_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
-            )
-            # recon_array = ((recon_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
-            combined_array = (
-                ((combined_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
-            )
-            edited_image_array = (
-                ((edited_image_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
             )
 
             # retrieve bounding boxes of nodule
