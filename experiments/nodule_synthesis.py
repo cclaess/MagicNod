@@ -317,7 +317,7 @@ def main(args):
                 ),
                 nrow=5,
                 normalize=True,
-                range=(-1, 1),
+                value_range=(-1, 1),
             )
             save_dir = Path(data_path["image"]).relative_to(data_dir).parent
             save_dir = Path(args.output_dir) / save_dir
@@ -326,7 +326,7 @@ def main(args):
             save_path = save_dir / f"{subject_id}-slice={idx}-grid.png"
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
-            grid_image = ((np.clip(grid_image.permute(1, 2, 0).cpu().numpy(), -1, 1) + 1) / 2 * 255).astype(
+            grid_image = (grid_image.permute(1, 2, 0).cpu().numpy() * 255).astype(
                 np.uint8
             )  # Normalize the images to [0, 255]
             grid_image = Image.fromarray(grid_image)
