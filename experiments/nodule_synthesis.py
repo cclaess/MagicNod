@@ -288,9 +288,12 @@ def main(args):
             smooth_mask = circular_nodule_mask.clone()
 
             # Apply convolutional filter to mask to create a smooth transition
-            kernel = (torch.ones((7, 7)) * (
-                1 / 49
-            )).unsqueeze(0).unsqueeze(0).to(smooth_mask.device)  # create_circular_average_kernel(7, 3).to(device)
+            kernel = (
+                (torch.ones((7, 7)) * (1 / 49))
+                .unsqueeze(0)
+                .unsqueeze(0)
+                .to(smooth_mask.device)
+            )  # create_circular_average_kernel(7, 3).to(device)
             smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
             # Cut and paste the reconstructed image within the mask region back to the original image
@@ -343,17 +346,33 @@ def main(args):
             )
 
             # Forward image through the diffusion model
-            edited_image_array = np.array(pipeline(
-                args.prompt,
-                image=combined_array,
-                num_inference_steps=args.num_inference_steps,
-                image_guidance_scale=args.image_guidance_scale,
-                guidance_scale=args.guidance_scale,
-                generator=generator,
-            ).images[0])
+            edited_image_array = np.array(
+                pipeline(
+                    args.prompt,
+                    image=combined_array,
+                    num_inference_steps=args.num_inference_steps,
+                    image_guidance_scale=args.image_guidance_scale,
+                    guidance_scale=args.guidance_scale,
+                    generator=generator,
+                ).images[0]
+            )
+
+            # Normalize the images to [0, 255]
+            image_array = ((image_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            # mask_array = ((mask_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            round_mask_array = (
+                ((round_mask_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            )
+            # recon_array = ((recon_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            combined_array = (
+                ((combined_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            )
+            edited_image_array = (
+                ((edited_image_array + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            )
 
             # retrieve bounding boxes of nodule
-            x, y, w, h = cv2.boundingRect(round_mask_array[..., 0].astype(np.uint8))
+            x, y, w, h = cv2.boundingRect(round_mask_array[..., 0])
             cv2.rectangle(
                 image_array, (x - 5, y - 5), (x + w + 5, y + h + 5), (0, 255, 0), 1
             )
