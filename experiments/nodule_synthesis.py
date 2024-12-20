@@ -388,8 +388,7 @@ def main(args):
             Image.fromarray(combined_array).save(save_dir / f"{subject_id}-slice={idx}-input.png")
 
             # Forward image through the diffusion model
-            edited_image_array = np.array(
-                pipeline(
+            edited_image_array = pipeline(
                     args.prompt,
                     image=combined_array,
                     num_inference_steps=args.num_inference_steps,
@@ -397,7 +396,9 @@ def main(args):
                     guidance_scale=args.guidance_scale,
                     generator=generator,
                 ).images[0]
-            )
+            
+            edited_image_array.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
+            edited_image_array = np.array(edited_image_array)
 
             # retrieve bounding boxes of nodule
             x, y, w, h = cv2.boundingRect(round_mask_array[..., 0])
@@ -420,7 +421,7 @@ def main(args):
             save_dir.mkdir(parents=True, exist_ok=True)
 
             image_pil.save(save_dir / f"{subject_id}-slice={idx}.png")
-            edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
+            # edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
 
 
 if __name__ == "__main__":
