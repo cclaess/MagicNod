@@ -64,6 +64,11 @@ def main(args):
         mask_paths = glob(os.path.join(args.data_dir, "masks", f"{subject_id}*.mhd"))
 
         annot_masks = [sitk.ReadImage(mask_path) for mask_path in mask_paths]
+
+        # Check if there are at least 2 annotators
+        if len(annot_masks) < 2:
+            continue
+
         avail_labels = []
         for annot_mask in annot_masks:
             label_stats.Execute(image, annot_mask)
@@ -92,6 +97,10 @@ def main(args):
 
         # Filter nodules detected by at least 2 annotators
         valid_nodules = {k: v for k, v in detected_nodules.items() if len(v['annotators']) >= 2}
+
+        # Check if there are valid nodules
+        if len(valid_nodules) == 0:
+            continue
 
         # Create final binary mask using majority voting
         combined_mask = sitk.Image(annot_masks[0].GetSize(), sitk.sitkUInt8)
