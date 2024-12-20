@@ -389,6 +389,7 @@ def main(args):
 
             save_dir = Path(data_path["image"]).relative_to(data_dir).parent
             save_dir = Path(args.output_dir) / save_dir
+            save_dir.mkdir(parents=True, exist_ok=True)
 
             image_pil.save(save_dir / f"image_slice={idx}.png")
             edited_image_pil.save(save_dir / f"edited_image_slice={idx}.png")
