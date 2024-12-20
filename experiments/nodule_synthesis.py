@@ -288,9 +288,9 @@ def main(args):
             smooth_mask = circular_nodule_mask.clone()
 
             # Apply convolutional filter to mask to create a smooth transition
-            kernel = torch.ones((7, 7), dtype=float) * (
+            kernel = (torch.ones((7, 7), dtype=float) * (
                 1 / 49
-            ).unsqueeze(0).unsqueeze(0)  # create_circular_average_kernel(7, 3).to(device)
+            )).unsqueeze(0).unsqueeze(0)  # create_circular_average_kernel(7, 3).to(device)
             smooth_mask = torch.nn.functional.conv2d(smooth_mask, kernel, padding=3)
 
             # Cut and paste the reconstructed image within the mask region back to the original image
