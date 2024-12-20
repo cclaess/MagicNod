@@ -7,9 +7,6 @@ import torch
 import numpy as np
 from PIL import Image
 from diffusers import StableDiffusionInstructPix2PixPipeline
-
-# from diffusers.utils import load_image
-# from lungmask import LMInferer
 from scipy.ndimage import label, find_objects
 from monai.transforms import (
     Compose,
@@ -21,6 +18,7 @@ from monai.transforms import (
     ResizeWithPadOrCropd,
     ToTensord,
 )
+from torchvision.utils import make_grid
 from generative.networks.nets import VQVAE
 
 from magicnod.transforms import FilterSlicesByMaskFuncd
@@ -304,6 +302,36 @@ def main(args):
 
             # Cut and paste the reconstructed image within the mask region back to the original image
             combined_image = image * torch.abs(smooth_mask - 1) + recon_image * smooth_mask
+
+            # Save image grid with original, mask, reconstructed, and combined images
+            grid_image = make_grid(
+                torch.cat(
+                    [
+                        image,
+                        nodule_mask,
+                        circular_nodule_mask * 2 - 1,
+                        recon_image,
+                        combined_image,
+                    ],
+                    dim=0,
+                ),
+                nrow=5,
+                normalize=True,
+                range=(-1, 1),
+            )
+            save_dir = Path(data_path["image"]).relative_to(data_dir).parent
+            save_dir = Path(args.output_dir) / save_dir
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+            save_path = save_dir / f"{subject_id}-slice={idx}-grid.png"
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            grid_image = ((np.clip(grid_image.permute(1, 2, 0).cpu().numpy(), -1, 1) + 1) / 2 * 255).astype(
+                np.uint8
+            )  # Normalize the images to [0, 255]
+            grid_image = Image.fromarray(grid_image)
+            grid_image.save(save_path)
+
 
             image_array = (
                 image.squeeze(0)
