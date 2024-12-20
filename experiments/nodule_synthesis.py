@@ -343,14 +343,14 @@ def main(args):
             )
 
             # Forward image through the diffusion model
-            edited_image_array = pipeline(
+            edited_image_array = np.array(pipeline(
                 args.prompt,
                 image=combined_array,
                 num_inference_steps=args.num_inference_steps,
                 image_guidance_scale=args.image_guidance_scale,
                 guidance_scale=args.guidance_scale,
                 generator=generator,
-            ).images[0].numpy()
+            ).images[0])
 
             # retrieve bounding boxes of nodule
             x, y, w, h = cv2.boundingRect(round_mask_array[..., 0].astype(np.uint8))
