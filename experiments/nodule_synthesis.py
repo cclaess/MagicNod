@@ -207,19 +207,13 @@ def main(args):
     # lungmask_inferer = LMInferer(modelname='LTRCLobes', fillmodel='R231')
 
     data_dir = Path(args.data_dir)
-    # image_paths = sorted(
-    #     glob(str(data_dir / "*data*" / "*.nii.gz")),
-    #     key=lambda x: Path(x).stem,
-    # )
-    # mask_paths = sorted(
-    #     glob(str(data_dir / "*masks" / "*.nii.gz")),
-    #     key=lambda x: Path(x).stem,
-    # )
     image_paths = sorted(
-        glob(str(data_dir / "valid" / "**" / "**" / "**" / "image.nii.gz")),
+        glob(str(data_dir / "*data*" / "*.nii.gz")),
+        key=lambda x: Path(x).stem,
     )
     mask_paths = sorted(
-        glob(str(data_dir / "valid" / "**" / "**" / "**" / "mask.nii.gz"))
+        glob(str(data_dir / "*masks" / "*.nii.gz")),
+        key=lambda x: Path(x).stem,
     )
     data_paths = [
         {"image": image_path, "mask": mask_path}
@@ -261,8 +255,7 @@ def main(args):
         orig_path = Path(data[0]["image"].meta["filename_or_obj"])
 
         # Extract the subject ID from the path
-        # subject_id = orig_path.stem
-        subject_id = orig_path.parent.parent.parent.name
+        subject_id = orig_path.stem
 
         for idx, slice_data in enumerate(data):
 
@@ -330,15 +323,10 @@ def main(args):
             save_dir = Path(args.output_dir) / save_dir
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            save_path = save_dir / f"{subject_id}-slice={idx}-grid.png"
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-
             grid_image = (grid_image.permute(1, 2, 0).cpu().numpy() * 255).astype(
                 np.uint8
             )  # Normalize the images to [0, 255]
-            grid_image = Image.fromarray(grid_image)
-            grid_image.save(save_path)
-
+            Image.fromarray(grid_image).save(save_dir / f"{subject_id}-slice={idx}-grid.png")
 
             image_array = (
                 image.squeeze(0)
@@ -349,15 +337,6 @@ def main(args):
                 .numpy()
                 .repeat(3, axis=-1)
             )
-            # mask_array = (
-            #     nodule_mask.squeeze(0)
-            #     .permute(2, 1, 0)
-            #     .flip(dims=(0, 1))
-            #     .detach()
-            #     .cpu()
-            #     .numpy()
-            #     .repeat(3, axis=-1)
-            # )
             round_mask_array = (
                 circular_nodule_mask.squeeze(0)
                 .permute(2, 1, 0)
@@ -367,15 +346,6 @@ def main(args):
                 .numpy()
                 .repeat(3, axis=-1)
             )
-            # recon_array = (
-            #     recon_image.squeeze(0)
-            #     .permute(2, 1, 0)
-            #     .flip(dims=(0, 1))
-            #     .detach()
-            #     .cpu()
-            #     .numpy()
-            #     .repeat(3, axis=-1)
-            # )
             combined_array = (
                 combined_image.squeeze(0)
                 .permute(2, 1, 0)
@@ -392,14 +362,12 @@ def main(args):
             image_array = ((np.clip(image_array, -1, 1) + 1) * 127.5).astype(np.uint8)
             round_mask_array = (round_mask_array * 255).astype(np.uint8)
 
-            Image.fromarray(combined_array).save(save_dir / f"{subject_id}-slice={idx}-input.png")
-
             diffusion_input = combined_array.copy()
             diffusion_input[..., 2] = round_mask_array[..., 0]
             diffusion_input = Image.fromarray(diffusion_input)
 
             # Forward image through the diffusion model
-            edited_image_array = pipeline(
+            edited_image_pil = pipeline(
                     args.prompt,
                     image=diffusion_input,
                     num_inference_steps=args.num_inference_steps,
@@ -408,8 +376,8 @@ def main(args):
                     generator=generator,
                 ).images[0]
             
-            edited_image_array.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
-            edited_image_array = np.array(edited_image_array)
+            edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
+            edited_image_array = np.array(edited_image_pil)
 
             # retrieve bounding boxes of nodule
             x, y, w, h = cv2.boundingRect(round_mask_array[..., 0])
@@ -427,12 +395,8 @@ def main(args):
             image_pil = Image.fromarray(image_array)
             edited_image_pil = Image.fromarray(edited_image_array)
 
-            save_dir = Path(data_path["image"]).relative_to(data_dir).parent
-            save_dir = Path(args.output_dir) / save_dir
-            save_dir.mkdir(parents=True, exist_ok=True)
-
-            image_pil.save(save_dir / f"{subject_id}-slice={idx}.png")
-            # edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
+            image_pil.save(save_dir / f"{subject_id}-slice={idx}-bbox.png")
+            edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited-bbox.png")
 
 
 if __name__ == "__main__":
