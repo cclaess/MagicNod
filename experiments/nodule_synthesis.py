@@ -207,13 +207,19 @@ def main(args):
     # lungmask_inferer = LMInferer(modelname='LTRCLobes', fillmodel='R231')
 
     data_dir = Path(args.data_dir)
+    # image_paths = sorted(
+    #     glob(str(data_dir / "*data*" / "*.nii.gz")),
+    #     key=lambda x: Path(x).stem,
+    # )
+    # mask_paths = sorted(
+    #     glob(str(data_dir / "*masks" / "*.nii.gz")),
+    #     key=lambda x: Path(x).stem,
+    # )
     image_paths = sorted(
-        glob(str(data_dir / "*data*" / "*.nii.gz")),
-        key=lambda x: Path(x).stem,
+        glob(str(data_dir / "valid" / "**" / "**" / "**" / "image.nii.gz")),
     )
     mask_paths = sorted(
-        glob(str(data_dir / "*masks" / "*.nii.gz")),
-        key=lambda x: Path(x).stem,
+        glob(str(data_dir / "valid" / "**" / "**" / "**" / "mask.nii.gz"))
     )
     data_paths = [
         {"image": image_path, "mask": mask_path}
@@ -255,7 +261,8 @@ def main(args):
         orig_path = Path(data[0]["image"].meta["filename_or_obj"])
 
         # Extract the subject ID from the path
-        subject_id = orig_path.stem
+        # subject_id = orig_path.stem
+        subject_id = orig_path.parent.parent.parent.name
 
         for idx, slice_data in enumerate(data):
 
