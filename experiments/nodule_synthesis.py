@@ -401,7 +401,7 @@ def main(args):
             # Forward image through the diffusion model
             edited_image_array = pipeline(
                     args.prompt,
-                    image=combined_array,
+                    image=diffusion_input,
                     num_inference_steps=args.num_inference_steps,
                     image_guidance_scale=args.image_guidance_scale,
                     guidance_scale=args.guidance_scale,
