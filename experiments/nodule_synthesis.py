@@ -255,7 +255,7 @@ def main(args):
         orig_path = Path(data[0]["image"].meta["filename_or_obj"])
 
         # Extract the subject ID from the path
-        subject_id = orig_path.stem
+        subject_id = orig_path.stem.stem
 
         for idx, slice_data in enumerate(data):
 
