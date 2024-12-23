@@ -386,18 +386,22 @@ def main(args):
                 .repeat(3, axis=-1)
             )
 
-            combined_array = ((np.clip(combined_array, -1, 1) + 1) / 2 * 255).astype(
+            combined_array = ((np.clip(combined_array, -1, 1) + 1) * 127.5).astype(
                 np.uint8)    # Normalize the images to [0, 255]
 
-            image_array = ((np.clip(image_array, -1, 1) + 1) / 2 * 255).astype(np.uint8)
+            image_array = ((np.clip(image_array, -1, 1) + 1) * 127.5).astype(np.uint8)
             round_mask_array = (round_mask_array * 255).astype(np.uint8)
 
             Image.fromarray(combined_array).save(save_dir / f"{subject_id}-slice={idx}-input.png")
 
+            diffusion_input = combined_array.copy()
+            diffusion_input[..., 2] = round_mask_array[..., 0]
+            diffusion_input = Image.fromarray(diffusion_input)
+
             # Forward image through the diffusion model
             edited_image_array = pipeline(
                     args.prompt,
-                    image=combined_array.convert("RGB"),
+                    image=combined_array,
                     num_inference_steps=args.num_inference_steps,
                     image_guidance_scale=args.image_guidance_scale,
                     guidance_scale=args.guidance_scale,
