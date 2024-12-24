@@ -248,7 +248,8 @@ def main(args):
     for data_path in data_paths:
 
         data = transforms(data_path)
-        if data is None:
+        # Check if data is empty list
+        if not data:
             continue
 
         # Get the original paths
