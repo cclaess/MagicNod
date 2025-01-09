@@ -1,8 +1,5 @@
 cd ~/Projects/MagicNod | exit 1
 
-mkdir -p $WANDB_DIR
-wandb login
-
 python3 -u experiments/inference_instruct_pix2pix.py \
     --model-path "./checkpoints/instruct_pix2pix_2/" \
     --prompt "Put a malignant lung nodule in the masked region" \

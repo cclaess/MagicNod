@@ -1,10 +1,10 @@
 #!/bin/sh
-#SBATCH --partition=gpu_h100
+#SBATCH --partition=elec-vca.gpu.q
 #SBATCH --nodes=1                               # Specify the amount of nodes
 #SBATCH --ntasks=1                              # Specify the number of tasks
 #SBATCH --cpus-per-task=16                      # Specify the number of CPUs/task
-#SBATCH --gpus=1                    	        # Specify the number of GPUs to use
-#SBATCH --time=01:00:00                          # Specify the maximum time the job can run
+#SBATCH --gpus=rtx3090ti.24gb:1                    	        # Specify the number of GPUs to use
+#SBATCH --time=02:00:00                          # Specify the maximum time the job can run
 
 # Umbrella cluster:
 # 6x titanrtx.24gb
