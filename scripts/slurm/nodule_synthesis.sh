@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                              # Specify the number of tasks
 #SBATCH --cpus-per-task=16                      # Specify the number of CPUs/task
 #SBATCH --gpus=1                    	        # Specify the number of GPUs to use
-#SBATCH --time=12:00:00                          # Specify the maximum time the job can run
+#SBATCH --time=01:00:00                          # Specify the maximum time the job can run
 
 # Umbrella cluster:
 # 6x titanrtx.24gb
