@@ -4,6 +4,7 @@ from pathlib import Path
 
 import cv2
 import torch
+import imageio
 import numpy as np
 from PIL import Image
 from diffusers import StableDiffusionInstructPix2PixPipeline
@@ -347,6 +348,15 @@ def main(args):
                 .numpy()
                 .repeat(3, axis=-1)
             )
+            smooth_mask_array = (
+                smooth_mask.squeeze(0)
+                .permute(2, 1, 0)
+                .flip(dims=(0, 1))
+                .detach()
+                .cpu()
+                .numpy()
+                .repeat(3, axis=-1)
+            )
             combined_array = (
                 combined_image.squeeze(0)
                 .permute(2, 1, 0)
@@ -360,6 +370,7 @@ def main(args):
             combined_array = ((np.clip(combined_array, -1, 1) + 1) * 127.5).astype(
                 np.uint8)    # Normalize the images to [0, 255]
 
+            image_array_large = ((np.clip(image_array, -1, 1) + 1) * 32767.5).astype(np.uint16)
             image_array = ((np.clip(image_array, -1, 1) + 1) * 127.5).astype(np.uint8)
             round_mask_array = (round_mask_array * 255).astype(np.uint8)
 
@@ -379,6 +390,11 @@ def main(args):
             
             edited_image_pil.save(save_dir / f"{subject_id}-slice={idx}-edited.png")
             edited_image_array = np.array(edited_image_pil)
+            edited_image_array_large = (edited_image_array.astype(np.float32) / 255.0 * 65535.0).astype(np.uint16)
+
+            # Cut and paste the edited image within the mask region back to the original image
+            edited_image_array_large = (image_array_large * (1 - smooth_mask_array) + \
+                                        edited_image_array_large * smooth_mask_array).astype(np.uint16)
 
             # retrieve bounding boxes of nodule
             x, y, w, h = cv2.boundingRect(round_mask_array[..., 0])
@@ -392,6 +408,19 @@ def main(args):
                 (0, 255, 0),
                 1,
             )
+            cv2.rectangle(
+                image_array_large, (x - 5, y - 5), (x + w + 5, y + h + 5), (65535, 0, 0), 1
+            )
+            cv2.rectangle(
+                edited_image_array_large,
+                (x - 5, y - 5),
+                (x + w + 5, y + h + 5),
+                (65535, 0, 0),
+                1,
+            )
+
+            imageio.imwrite(save_dir / f"{subject_id}-slice={idx}-bbox-large.png", image_array_large[..., 0])
+            imageio.imwrite(save_dir / f"{subject_id}-slice={idx}-edited-bbox-large.png", edited_image_array_large[..., 0])
 
             image_pil = Image.fromarray(image_array)
             edited_image_pil = Image.fromarray(edited_image_array)
